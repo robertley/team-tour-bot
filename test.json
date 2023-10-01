@@ -1,0 +1,41 @@
+{
+    "team1": {
+        "name": "Foo",
+        "emoji": ":smile:",
+        "player1": "Bob",
+        "player2": "Alice",
+        "player3": "John",
+        "player4": "Jane",
+        "player5": "Jack"
+    },
+    "team2": {
+        "name": "Bar",
+        "emoji": ":thumbsup:",
+        "player1": "Billy",
+        "player2": "Sue",
+        "player3": "John",
+        "player4": "Alice",
+        "player5": "Jimmy"
+    }
+}
+
+{
+    "team1": {
+        "name": "Taco Truck",
+        "emoji": ":taco:",
+        "player1": "Rick",
+        "player2": "Ralph",
+        "player3": "Hank",
+        "player4": "Harry",
+        "player5": "Linda"
+    },
+    "team2": {
+        "name": "Chicken Little",
+        "emoji": ":chicken:",
+        "player1": "Larry",
+        "player2": "Perry",
+        "player3": "Peter",
+        "player4": "Osama",
+        "player5": "Oscar"
+    }
+}
