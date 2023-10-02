@@ -1,4 +1,5 @@
 {
+    "week": "1",
     "team1": {
         "name": "Foo",
         "emoji": ":smile:",
@@ -20,6 +21,7 @@
 }
 
 {
+    "week": "1",
     "team1": {
         "name": "Taco Truck",
         "emoji": ":taco:",

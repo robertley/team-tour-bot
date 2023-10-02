@@ -12,27 +12,10 @@ const {
     Partials
 } = require('discord.js');
 const { token, matchUpConfigId, matchUpsId, reactionsId, guildId } = require('./config.json');
+const { writeToSettingsServer, writeObjectToFile, setMatchupWinner, getScores, prettyJson, replacer, writeScoresToLeaderboard, validWeek } = require('./modules/functions.module.js');
+const { verify } = require('node:crypto');
+const { get } = require('node:http');
 
-
-function replacer(key, value) {
-    if(value instanceof Map) {
-      return {
-        dataType: 'Map',
-        value: Array.from(value.entries()), // or with spread: value: [...value]
-      };
-    } else {
-      return value;
-    }
-}
-
-function reviver(key, value) {
-    if(typeof value === 'object' && value !== null) {
-        if (value.dataType === 'Map') {
-        return new Map(value.value);
-        }
-    }
-return value;
-}
 
 //#region Boiler Plate
 
@@ -53,33 +36,6 @@ const collectorFilter = (reaction, user) => {
     return !user.bot;
 };
 
-async function collectReactions() {
-    let messageReactionMap = new Map();
-    let matchupsChannel = client.channels.cache.get(matchUpsId);
-    await matchupsChannel.messages.fetch({ limit: 100 }).then(async messages => {
-        console.log(`Received ${messages.size} messages`);
-        let mssgArray = Array.from(messages.values());
-        // console.log(mssgArray[0]);
-        for (let message of mssgArray) {
-            let reactionUserMap = new Map();
-            messageReactionMap.set(message.id, reactionUserMap);
-
-            message.reactions.cache.forEach(async (reaction) => {
-                // await reaction.message.channel.messages.cache.delete(reaction.message.id);
-                // await reaction.message.reactions.cache.clear();
-                // let message = await reaction.message.fetch();
-                reaction.users.cache.forEach((user) => {
-                    console.log(user.username);
-                })
-                
-                await processReactionEvent(reaction);
-            });
-            
-        }
-
-        // console.log(messageReactionMap)
-    }).catch(console.error);
-}
 
 async function getUsers() {
     // get all users in guild
@@ -98,13 +54,14 @@ client.once(Events.ClientReady, async c => {
 	console.log(`Ready! Logged in as ${c.user.tag}`);
 
     await getUsers();
-    await collectReactions();
+    await writeToSettingsServer(client);
+    // await collectReactions();
     // do something every 1 minute
-    setInterval(async function() {
-        await collectReactions();
-        postReactionsToChannel();
-        console.log('done');
-    }, 1000*60*1); // time is in milliseconds. 1000 ms * 60 sec * 15 min
+    // setInterval(async function() {
+    //     await collectReactions();
+    //     postReactionsToChannel();
+    //     console.log('done');
+    // }, 1000*60*1); // time is in milliseconds. 1000 ms * 60 sec * 15 min
 });
 
 
@@ -154,6 +111,12 @@ client.on(Events.InteractionCreate, async interaction => {
 
 //#region Modal testing
 client.on(Events.InteractionCreate, async interaction => {
+    
+    if (interaction.isButton()) {
+        buttonHandler(interaction);
+        return;
+    }
+
 	if (!interaction.isChatInputCommand()) return;
 
 	if (interaction.commandName === 'ping') {
@@ -247,20 +210,26 @@ client.on(Events.MessageCreate, async message => {
 
     if (message.author.bot) return; // ignore bot messages
 
-    if (message.channel.id == matchUpsId) {
-        console.log('matchups channel')
-        collectReactions();
-    }
+    // if (message.channel.id == matchUpsId) {
+    //     console.log('matchups channel')
+    //     collectReactions();
+    // }
 
     if (message.channel.id !== matchUpConfigId) return;
 
 
     try {
         let matchUpConfig = JSON.parse(message.content);
+        let week = matchUpConfig.week;
+        if (!(await validWeek(week))) {
+            message.reply('The week number is invalid.');
+            return;
+        }
         let team1Emoji = matchUpConfig.team1.emoji;
         let team2Emoji = matchUpConfig.team2.emoji;
         let team1 = matchUpConfig.team1;
         let team2 = matchUpConfig.team2;
+        lastMatchupMessages = [];
 
         let text = buildMatchupMessage(team1.name, team2.name, team1Emoji, team2Emoji);
         lastMatchupMessages.push(text);
@@ -279,13 +248,11 @@ client.on(Events.MessageCreate, async message => {
         lastTeam1Emoji = team1Emoji;
         lastTeam2Emoji = team2Emoji;
 
-        // write file
-        fs.writeFile('./data/lastMatchupMessages.json', JSON.stringify({
+        await writeObjectToFile('./data/lastMatchupMessages.json', {
+            week: week,
             lastMatchupMessages: lastMatchupMessages,
             lastTeam1Emoji: lastTeam1Emoji,
             lastTeam2Emoji: lastTeam2Emoji
-        }), (err) => {
-            console.log(err)
         });
         
     } catch (error) {
@@ -297,72 +264,6 @@ client.on(Events.MessageCreate, async message => {
         message.reply('There was an error while parsing the matchup config. Please check the format and try again.');
     }
 })
-
-async function getReactedUsers(msg, channelID, messageID, emoji) {
-    let cacheChannel = msg.guild.channels.cache.get(channelID);
-    // console.log(cacheChannel)
-    let users = [];
-    if(cacheChannel){
-        await cacheChannel.messages.fetch(messageID).then(async reactionMessage => {
-           await reactionMessage.reactions.resolve(emoji).users.fetch().then(userList => {
-                users = userList
-                .filter((user) => !user.bot)
-                .map((user) => user.username)
-            });
-        });
-    }
-    return users;
-}
-
-async function processReactionEvent(reaction) {
-    let users = await getReactedUsers(reaction.message, reaction.message.channel.id, reaction.message.id, reaction.emoji.name)
-
-    await fs.readFile('./data/reactionMap.json', 'utf8', async (err, data) => {
-        if (err){
-            console.log(err);
-            // this is bad and should be handled
-            // TODO
-            return;
-        } else {
-            let reactionMap;
-            try {
-                reactionMap = JSON.parse(data, reviver);
-            } catch {
-                return;
-            }
-            // try to find the message as a teamMessageId
-            let reactionMapItem = reactionMap.get(reaction.message.id);
-            if (reactionMapItem) {
-                if (reaction.emoji.name == reactionMapItem.team1Emoji) {
-                    reactionMapItem.team1Votes = users;
-                } else {
-                    reactionMapItem.team2Votes = users;
-                }
-            } else {
-                // try to find the message as a matchupMessageId
-                for (let [key, value] of reactionMap) {
-                    let matchupMessage = value;
-                    for (let message of matchupMessage.matchupMessages) {
-                        if (message.messageId == reaction.message.id) {
-                            if (reaction.emoji.name == message.player1Emoji) {
-                                message.player1Votes = users;
-                            } else {
-                                message.player2Votes = users;
-                            }
-                        }
-                    }
-                }
-            }
-
-            let reactionMapString = JSON.stringify(reactionMap, replacer);
-            await fs.writeFile('./data/reactionMap.json', reactionMapString, (err) => {
-                if (err) throw err;
-                console.log('Data written to file');
-            });
-
-        }
-    });
-}
 
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
     if (user.bot) return; // ignore bot reactions
@@ -383,73 +284,33 @@ client.on(Events.MessageReactionRemove, async (reaction, user) => {
     }
 });
 
+async function buttonHandler(interaction) {
+    console.log('button clicked')
+    let customId = interaction.customId;
+    let customIdArray = customId.split('-');
+    let team = customIdArray[1];
+    let matchupId = customIdArray[0];
 
-function postReactionsToChannel() {
-    fs.readFile('./data/reactionMap.json', 'utf8', async (err, data) => {
-        if (err) {
-            return;
-        }
+    await setMatchupWinner(+matchupId, team);
 
-        if (data == null) {
-            return;
-        }
-        let reactionMap;
-        try {
-            reactionMap = JSON.parse(data, reviver);
-        } catch {
-            return;
-        }
+    let emoji = '\u{1F7E5}'; // Unicode escape sequence for red square emoji
+    if (team == '2') {
+        emoji = '\u{1F7E9}'; // Unicode escape sequence for green square emoji
+    }
+    // update content of message
+    let message = interaction.message.content;
+    // remove last character from message
+    message = message.substring(0, message.length - 1);
+    // add emoji to message
+    message += emoji;
+    interaction.update({
+        content: message
+    })
 
-        let text = "```"
-
-        for (let [key, value] of reactionMap) {
-            let matchupMessage = value;
-            text += matchupMessage.teamMessage + "\n";
-            let team1Votes = "";
-            for (let vote of matchupMessage.team1Votes) {
-                team1Votes += `${vote}, `;
-            }
-            team1Votes = team1Votes.substring(0, team1Votes.length - 2);
-            let team2Votes = "";
-            for (let vote of matchupMessage.team2Votes) {
-                team2Votes += `${vote}, `;
-            }
-            team2Votes = team2Votes.substring(0, team2Votes.length - 2);
-
-            text += `${matchupMessage.team1} Votes: ${team1Votes}\n`;
-            text += `${matchupMessage.team2} Votes: ${team2Votes}\n`;
-            text += "\n";
-            for (let message of matchupMessage.matchupMessages) {
-                text += message.message + "\n";
-                let player1Votes = "";
-                for (let vote of message.player1Votes) {
-                    player1Votes += `${vote}, `;
-                }
-                player1Votes = player1Votes.substring(0, player1Votes.length - 2);
-                let player2Votes = "";
-                for (let vote of message.player2Votes) {
-                    player2Votes += `${vote}, `;
-                }
-                player2Votes = player2Votes.substring(0, player2Votes.length - 2);
-                text += `${message.player1} Votes: ${player1Votes}\n`;
-                text += `${message.player2} Votes: ${player2Votes}\n`;
-                text += "\n";
-            }
-        }
-
-
-        text += "```"
-
-        let channel = client.channels.cache.get(reactionsId);
-        await channel.messages.fetch({ limit: 1 }).then(async messages => {
-            if (messages.size == 0) {
-                await channel.send(text);
-                return;
-            }
-            let messageArray = Array.from(messages.values());
-            await messageArray[0].edit(text);
-        });
-    });
+    let scoresMap = await getScores();
+    writeScoresToLeaderboard(client, scoresMap);
+    let scoresString = JSON.stringify(scoresMap, replacer, 2);
+    console.log(scoresString);
 }
 
 // Log in to Discord with your client's token
