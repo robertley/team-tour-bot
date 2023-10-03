@@ -1,4 +1,4 @@
-const { getReactionMap, setReactionMap, getSettings, getSettingsChannelId, setSettings, getWeeks, setWeeks, getMatchups, setMatchups, getLeaderboardChannelId, getMatchupsChannelId } = require('./database.module.js');
+const { getReactionMap, setReactionMap, getSettings, setSettings, getWeeks, setWeeks, getMatchups, setMatchups, getLeaderboardChannelId, getMatchupsChannelId, writeToSettingsServer } = require('./database.module.js');
 
 exports.collectReactions = async function collectReactions(client, guild, week) {
     let matchupsChannel = client.channels.cache.get(await getMatchupsChannelId(guild));
@@ -109,27 +109,11 @@ exports.prettyJson = function prettyJson(jsonString, map=false) {
     return JSON.stringify(json, null, 2);
 }
 
-exports.writeToSettingsServer = async function writeToSettingsServer(client, guild) {
-    console.log(guild)
-    let settings = await getSettings(guild)
-    let settingsString = JSON.stringify(settings, module.exports.replacer);
-    let text= "```" + module.exports.prettyJson(settingsString) + "```";
-    let channel = client.channels.cache.get(await getSettingsChannelId(guild));
-	await channel.messages.fetch({ limit: 1 }).then(async messages => {
-		if (messages.size == 0) {
-			await channel.send(text);
-			return;
-		}
-		let messageArray = Array.from(messages.values());
-		await messageArray[0].edit(text);
-	});
-}
-
 exports.updateSetting = async function updateSetting(key, value, client, guild) {
     let settings = await getSettings(guild);
     settings[key] = value;
     await setSettings(guild, settings);
-    await module.exports.writeToSettingsServer(client, guild);
+    await writeToSettingsServer(client, guild, settings);
 }
 
 exports.finalizeWeek = async function finalizeWeek(week, client, guild) {

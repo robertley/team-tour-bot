@@ -227,7 +227,7 @@ client.on(Events.MessageReactionRemove, async (reaction, user) => {
 
 // when bot is added to server
 client.on(Events.GuildCreate, async guild => {
-    await initNewServer(guild);
+    await initNewServer(guild, client);
 })
 
 async function buttonHandler(interaction) {

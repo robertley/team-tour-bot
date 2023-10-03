@@ -1,7 +1,7 @@
 const { ChannelType } = require('discord.js');
 const fs = require('node:fs');
 
-exports.initNewServer = async function initNewServer (guild) {
+exports.initNewServer = async function initNewServer (guild, client) {
     const directory = `./data/${guild.id}`;
     try {
         if (!fs.existsSync(directory)) {
@@ -11,13 +11,13 @@ exports.initNewServer = async function initNewServer (guild) {
         console.error(err);
     }
     await module.exports.initFiles(guild);
-    await createDefaultChannels(guild);
+    await createDefaultChannels(guild, client);
 }
 
 // TODO: default permissions
-createDefaultChannels = async function createDefaultChannels (guild) {
+createDefaultChannels = async function createDefaultChannels (guild, client) {
     let category = await guild.channels.create({ name: 'pickems', type: ChannelType.GuildCategory });
-    let console = await guild.channels.create({ name: 'pickems-console', type: ChannelType.GuildText, parent: category });
+    let consoleC = await guild.channels.create({ name: 'pickems-console', type: ChannelType.GuildText, parent: category });
     let matchups = await guild.channels.create({ name: 'matchups', type: ChannelType.GuildText, parent: category });
     let leaderboard = await guild.channels.create({ name: 'leaderboard', type: ChannelType.GuildText, parent: category });
     let settings = await guild.channels.create({ name: 'settings', type: ChannelType.GuildText, parent: category });
@@ -30,13 +30,28 @@ createDefaultChannels = async function createDefaultChannels (guild) {
         guildId: guild.id,
         matchupsChannelId: matchups.id,
         leaderboardChannelId: leaderboard.id,
-        consoleChannelId: console.id,
+        consoleChannelId: consoleC.id,
         settingsChannelId: settings.id,
         pickemsMatchupCategoryId: pickemsMatchupCategory.id,
         pickemsMatchupArchiveCategoryId: pickemsMatchupArchiveCategory.id,
     }
 
-    module.exports.setSettings(guild, settingsObject);
+    await module.exports.setSettings(guild, settingsObject);
+    await module.exports.writeToSettingsServer(client, guild, settingsObject);
+}
+
+exports.writeToSettingsServer = async function writeToSettingsServer(client, guild, settings) {
+    let settingsString = JSON.stringify(settings, module.exports.replacer);
+    let text= "```" + prettyJson(settingsString) + "```";
+    let channel = client.channels.cache.get(await module.exports.getSettingsChannelId(guild));
+	await channel.messages.fetch({ limit: 1 }).then(async messages => {
+		if (messages.size == 0) {
+			await channel.send(text);
+			return;
+		}
+		let messageArray = Array.from(messages.values());
+		await messageArray[0].edit(text);
+	});
 }
 
 exports.initFiles = async function initFiles (guild) {
@@ -191,3 +206,7 @@ exports.getPickemsMatchupCategoryId = async function getPickemsMatchupCategoryId
     return settings.pickemsMatchupCategoryId;
 }
 
+prettyJson = function prettyJson(jsonString, map=false) {
+    let json = JSON.parse(jsonString);
+    return JSON.stringify(json, null, 2);
+}
