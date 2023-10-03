@@ -19,9 +19,11 @@ module.exports = {
             weekNumber: weeks.length + 1,
             finalized: false
         });
+        // let divider =  "══════    **_" + weekText + "_**    ══════";
+        let divider = "══════════════════\n**_"+ weekText +"_**\n══════════════════";
         await writeObjectToFile('./data/weeks.json', weeks);
         await updateSetting('weeks', weeks, interaction.client);
         await interaction.channel.send('New week created: ' + weeks.length)
-        await interaction.client.channels.cache.get(matchUpsId).send('════════════    **_' + weekText + '_**    ════════════');
+        await interaction.client.channels.cache.get(matchUpsId).send(divider);
 	},
 };

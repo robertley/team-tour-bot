@@ -68,7 +68,13 @@ async function processReactionEvent(reaction, reactionMap, week) {
     let matchupItems = reactionMap.get(week);
     for (let item of matchupItems) {
         if (item.teamMessageId == reaction.message.id) {
-            if (reaction.emoji.name == item.team1Emoji) {
+            let team1Emoji = item.team1Emoji.substring(item.team1Emoji.indexOf(':') + 1, item.team1Emoji.lastIndexOf(':'));
+            if (team1Emoji == '') {
+                team1Emoji = item.team1Emoji;
+            }
+            
+
+            if (reaction.emoji.name == team1Emoji) {
                 item.team1Votes = users;
             } else {
                 item.team2Votes = users;
@@ -78,7 +84,11 @@ async function processReactionEvent(reaction, reactionMap, week) {
         }
         for (message of item.matchupMessages) {
             if (message.messageId == reaction.message.id) {
-                if (reaction.emoji.name == message.player1Emoji) {
+                let player1Emoji = message.player1Emoji.substring(message.player1Emoji.indexOf(':') + 1, message.player1Emoji.lastIndexOf(':')) ?? message.player1Emoji;
+                if (player1Emoji == '') {
+                    player1Emoji = message.player1Emoji;
+                }
+                if (reaction.emoji.name == player1Emoji) {
                     message.player1Votes = users;
                 } else {
                     message.player2Votes = users;
@@ -196,7 +206,7 @@ exports.createMatchupObjects = async function createMatchupObjects(objects) {
 }
 
 exports.setMatchupWinner = async function setMatchupWinner(id, winner) {
-    console.log('setting winner...', id, winner)
+    // console.log('setting winner...', id, winner)
     let matchups = await module.exports.getObjectFromFile('./data/matchups.json');
     let matchup = matchups.get(id);
     matchup.winner = winner;
@@ -207,6 +217,11 @@ exports.getScores = async function getScores() {
     let matchups = await module.exports.getObjectFromFile('./data/matchups.json');
     let reactionMap = await module.exports.getObjectFromFile('./data/reactionMap.json');
     let scoresMap = new Map();
+    let weeks = await module.exports.getObjectFromFile('./data/weeks.json');
+    let lastWeek;
+    if (weeks) {
+        lastWeek = weeks[weeks.length - 1].weekNumber;
+    }
 
     // filter out all matchups that have 0 as the winner value
     let finalizedMatchups = new Map();
@@ -217,6 +232,7 @@ exports.getScores = async function getScores() {
     }
 
     for (let [week, matchupItems] of reactionMap) {
+        let isLastWeek = week == lastWeek;
         for (let item of matchupItems) {
             let teamMatchupId = item.id;
             if (finalizedMatchups.has(teamMatchupId)) {
@@ -231,10 +247,10 @@ exports.getScores = async function getScores() {
                     usersIncorrect = item.team1Votes;
                 }
                 for (let user of usersCorrect) {
-                    addUserScore('correct', user, scoresMap);
+                    addUserScore('correct', user, scoresMap, isLastWeek);
                 }
                 for (let user of usersIncorrect) {
-                    addUserScore('incorrect', user, scoresMap);
+                    addUserScore('incorrect', user, scoresMap, isLastWeek);
                 }
             }
             for (let message of item.matchupMessages) {
@@ -251,10 +267,10 @@ exports.getScores = async function getScores() {
                         usersIncorrect = message.player1Votes;
                     }
                     for (let user of usersCorrect) {
-                        addUserScore('correct', user, scoresMap);
+                        addUserScore('correct', user, scoresMap, isLastWeek);
                     }
                     for (let user of usersIncorrect) {
-                        addUserScore('incorrect', user, scoresMap);
+                        addUserScore('incorrect', user, scoresMap, isLastWeek);
                     }
                 }
             }
@@ -264,14 +280,16 @@ exports.getScores = async function getScores() {
     return scoresMap;
 }
 
-function addUserScore(score, user, scoresMap) {
+function addUserScore(score, user, scoresMap, lastWeek) {
     let scoreObject;
     if (scoresMap.has(user)) {
         scoreObject = scoresMap.get(user);
     } else {
         scoreObject = {
             correct: 0,
-            incorrect: 0
+            incorrect: 0,
+            lastWeekCorrect: 0,
+            lastWeekIncorrect: 0
         }
         scoresMap.set(user, scoreObject);
     }
@@ -279,6 +297,13 @@ function addUserScore(score, user, scoresMap) {
         scoreObject.correct++;
     } else {
         scoreObject.incorrect++;
+    }
+    if (lastWeek) {
+        if (score == 'correct') {
+            scoreObject.lastWeekCorrect++;
+        } else {
+            scoreObject.lastWeekIncorrect++;
+        }
     }
 }
 
@@ -288,9 +313,18 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
         let user = await client.users.fetch(key);
         let scoreObject = {
             user: user.username,
-            correct: value.correct,
-            incorrect: value.incorrect,
-            score: value.correct - value.incorrect
+            correct: `${value.correct}`,
+            incorrect: `${value.incorrect}`,
+            score: `${value.correct - value.incorrect}`
+        }
+        if (value.lastWeekCorrect > 0) {
+            scoreObject.correct += ` (${value.lastWeekCorrect < 1 ? '-' : '+'}${value.lastWeekCorrect})`;
+        }
+        if (value.lastWeekIncorrect > 0) {
+            scoreObject.incorrect += ` (${value.lastWeekIncorrect < 1 ? '-' : '+'}${value.lastWeekIncorrect})`;
+        }
+        if (Math.abs(value.lastWeekCorrect - value.lastWeekIncorrect) > 0) {
+            scoreObject.score += ` (${value.lastWeekCorrect - value.lastWeekIncorrect < 1 ? '-' : '+'}${Math.abs(value.lastWeekCorrect - value.lastWeekIncorrect)})`;
         }
         leaderboard.push(scoreObject);
     }

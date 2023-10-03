@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { collectReactions, prettyJson, getObjectFromFile, finalizeWeek } = require('./../../modules/functions.module.js'); 
 const fs = require('node:fs');
-const { reactionsId } = require('./../../config.json');
+const { reactionsId, matchUpsId } = require('./../../config.json');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -23,6 +23,7 @@ module.exports = {
 			await collectReactions(interaction.client, week);
 			// await postReactionsToChannel(interaction.client);
 			await finalizeWeek(week, interaction.client)
+			await interaction.client.channels.cache.get(matchUpsId).send({ content: `_Week ${week} picks have been finalized. All picks made before this message has been sent will count towards your score. New picks for week ${week} will not be counted._`});
 			interaction.channel.send({ content: `Reactions collected. Week ${week} reactions been finalized.`})
 			// await postReactionsToChannel();
 		} catch (error) {

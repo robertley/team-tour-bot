@@ -14,6 +14,11 @@ module.exports = {
             let reactionMap = await getObjectFromFile('./data/reactionMap.json');
             let matchupData = await getObjectFromFile('./data/lastMatchupMessages.json');
 
+            // check if matchups channel is empty object
+            if (Object.keys(matchupData).length === 0) {
+                return matchupConfigChannel.send('No matchups to commit.');
+            }
+
             // if last message in the matchups channel is a matchup, add a divider
             let lastMessage = await matchupsChannel.messages.fetch({ limit: 1 });
             // check if lastMessage has a reaction
@@ -69,8 +74,8 @@ module.exports = {
                     reactionMapItem.teamMessageId = messageSent.id;
                     reactionMapItem.team1 = player1;
                     reactionMapItem.team2 = player2;
-                    reactionMapItem.team1Emoji = matchupData.lastTeam1Emoji;
-                    reactionMapItem.team2Emoji = matchupData.lastTeam2Emoji;
+                    reactionMapItem.team1Emoji = matchupData.lastTeam1Emoji ?? matchupData.lastTeam1Emoji;
+                    reactionMapItem.team2Emoji = matchupData.lastTeam2Emoji ?? matchupData.lastTeam2Emoji;
                 } else {
                     let id = Date.now();
                     reactionMapItem.matchupMessages.push({
@@ -79,8 +84,8 @@ module.exports = {
                         message: messageSent.content,
                         player1: player1,
                         player2: player2,
-                        player1Emoji: matchupData.lastTeam1Emoji,
-                        player2Emoji: matchupData.lastTeam2Emoji,
+                        player1Emoji: matchupData.lastTeam1Emoji.name ?? matchupData.lastTeam1Emoji,
+                        player2Emoji: matchupData.lastTeam2Emoji.name ?? matchupData.lastTeam2Emoji,
                         player1Votes: [],
                         player2Votes: []
                     });
@@ -95,6 +100,7 @@ module.exports = {
 
             await createMatchupObjects(matchupObjects);
             writeObjectToFile('./data/reactionMap.json', reactionMap);
+            writeObjectToFile('./data/lastMatchupMessages.json', {});
             await createPickemMatchupChannels(interaction.client, reactionMapItem, matchupData.week);
             matchupConfigChannel.send('Matchups committed.');
         } catch (error) {
@@ -120,14 +126,21 @@ async function createPickemMatchupChannels(client, reactionMapItem, week) {
         .setStyle('Primary')
         .setLabel(reactionMapItem.team2)
         .setCustomId(reactionMapItem.id + '-2');
+    const noWinner = new ButtonBuilder()
+        .setStyle('Primary')
+        .setLabel('No Winner')
+        .setCustomId(reactionMapItem.id + '-0');
 
     const row = new ActionRowBuilder()
-        .addComponents(team1, team2);
+        .addComponents(team1, team2, noWinner);
 
     // unicode for white large square emoji
     let emoji = '\u{2B1C}';
+
+    let content = `Matchup ID: ${reactionMapItem.id}\n`
+    content += `**${reactionMapItem.team1}** :red_square: vs **${reactionMapItem.team2}** :green_square: - Winner ` + emoji;
     await channel.send({
-        content: `**${reactionMapItem.team1}** :red_square: vs **${reactionMapItem.team2}** :green_square: - Winner ` + emoji,
+        content: content,
         components: [row]
     });
 
@@ -140,12 +153,18 @@ async function createPickemMatchupChannels(client, reactionMapItem, week) {
             .setStyle('Primary')
             .setLabel(matchup.player2)
             .setCustomId(matchup.id + '-2');
+        const noWinner = new ButtonBuilder()
+            .setStyle('Primary')
+            .setLabel('No Winner')
+            .setCustomId(matchup.id + '-0');
         
         const row = new ActionRowBuilder()
-            .addComponents(player1, player2);
+            .addComponents(player1, player2, noWinner);
 
+        let content = `Matchup ID: ${matchup.id}\n`
+        content += `**${matchup.player1}** :red_square: vs **${matchup.player2}** :green_square: - Winner ` + emoji;
         await channel.send({
-            content: `**${matchup.player1}** :red_square: vs **${matchup.player2}** :green_square: - Winner ` + emoji,
+            content: content,
             components: [row]
         });
     }

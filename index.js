@@ -293,7 +293,13 @@ async function buttonHandler(interaction) {
 
     await setMatchupWinner(+matchupId, team);
 
-    let emoji = '\u{1F7E5}'; // Unicode escape sequence for red square emoji
+    let emoji = '';
+    if (team == '0') {
+        emoji = '\u{2B1C}'; // Unicode escape sequence for yellow square emoji
+    } 
+    if (team == '1') {
+        emoji = '\u{1F7E5}'; // Unicode escape sequence for red square emoji
+    }
     if (team == '2') {
         emoji = '\u{1F7E9}'; // Unicode escape sequence for green square emoji
     }
