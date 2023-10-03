@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { getObjectFromFile, writeObjectToFile, updateSetting } = require('./../../modules/functions.module.js');
-const { matchUpsId } = require('./../../config.json');
+const { updateSetting } = require('./../../modules/functions.module.js');
+
+const { getWeeks, setWeeks, getMatchupsChannelId } = require('../../modules/database.module.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -12,7 +13,7 @@ module.exports = {
                 .setRequired(false)),
 	async execute(interaction) {
 		await interaction.reply('Creating new Team Tour Week...');
-        let weeks = await getObjectFromFile('./data/weeks.json');
+        let weeks = await getWeeks(interaction.guild);
         if (weeks == null) weeks = [];
         let weekText = interaction.options.getString('custom-divider-text') ?? `Week ${weeks.length + 1}`;
         weeks.push({
@@ -21,9 +22,9 @@ module.exports = {
         });
         // let divider =  "══════    **_" + weekText + "_**    ══════";
         let divider = "══════════════════\n**_"+ weekText +"_**\n══════════════════";
-        await writeObjectToFile('./data/weeks.json', weeks);
-        await updateSetting('weeks', weeks, interaction.client);
+        await setWeeks(interaction.guild, weeks);
+        await updateSetting('weeks', weeks, interaction.client, interaction.guild);
         await interaction.channel.send('New week created: ' + weeks.length)
-        await interaction.client.channels.cache.get(matchUpsId).send(divider);
+        await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild)).send(divider);
 	},
 };

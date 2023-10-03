@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { updateSetting, getObjectFromFile, writeObjectToFile } = require('../../modules/functions.module');
 const { matchUpsId } = require('./../../config.json');
+const { getObjectFromFile, writeObjectToFile, getWeeks, getReactionMap, setReactionMap, getMatchupsChannelId } = require('./../../modules/database.module.js');
+
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -27,9 +28,9 @@ module.exports = {
         if (!validFields.includes(field)) {
             return interaction.channel.send('Invalid field.');
         }
-        let weeks = await getObjectFromFile('./data/weeks.json');
+        let weeks = await getWeeks(interaction.guild);
         let activeWeeks = weeks.filter(week => !week.finalized);
-        let reactionMap = await getObjectFromFile('./data/reactionMap.json');
+        let reactionMap = await getReactionMap(interaction.guild);
         let matchupItem;
         for (let week of activeWeeks) {
             let matchupArray = reactionMap.get(`${week.weekNumber}`);
@@ -46,11 +47,11 @@ module.exports = {
             return interaction.channel.send('Matchup not found, or Matchup is in a finalized week.');
         }
         matchupItem[field] = value;
-        await writeObjectToFile('./data/reactionMap.json', reactionMap);
+        await setReactionMap(interaction.guild, reactionMap);
 
         if (field == 'player1' || field == 'player2') {
                 // update message in #matchups channel
-                let matchupsChannel = await interaction.client.channels.cache.get(matchUpsId);
+                let matchupsChannel = await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild));
                 let newMessage = `${matchupItem.player1Emoji} **${matchupItem.player1}** vs. **${matchupItem.player2}** ${matchupItem.player2Emoji}`
                 await matchupsChannel.messages.fetch(matchupItem.messageId).then(message => message.edit(newMessage));
         }

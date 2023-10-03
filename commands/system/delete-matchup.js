@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { updateSetting, getObjectFromFile, writeObjectToFile } = require('../../modules/functions.module');
 const { matchUpsId } = require('./../../config.json');
+const { getObjectFromFile, writeObjectToFile, getMatchups, setMatchups, getWeeks, getReactionMap, setReactionMap, getMatchupsChannelId } = require('./../../modules/database.module.js');
+const { setMatchupWinner } = require('../../modules/functions.module');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -13,9 +14,9 @@ module.exports = {
 	async execute(interaction) {
 		await interaction.reply('Deleting matchup...');
         let matchupId = interaction.options.getString('matchup-id');
-        let weeks = await getObjectFromFile('./data/weeks.json');
+        let weeks = await getWeeks(interaction.guild);
         let activeWeeks = weeks.filter(week => !week.finalized);
-        let reactionMap = await getObjectFromFile('./data/reactionMap.json');
+        let reactionMap = await getReactionMap(interaction.guild);
         let matchupItem;
         let matchupArrayWithItem;
         let weekNumber;
@@ -44,17 +45,17 @@ module.exports = {
         // remove matchupItem from matchupArray 
         matchupArrayWithItem = matchupArrayWithItem.filter(matchup => matchup.id != matchupId);
         reactionMap.set(`${weekNumber}`, matchupArrayWithItem);
-        await writeObjectToFile('./data/reactionMap.json', reactionMap);
+        await setReactionMap(interaction.guild, reactionMap);
 
         // remove all matchups from matchups.json
-        let matchups = await getObjectFromFile('./data/matchups.json');
+        let matchups = await getMatchups(interaction.guild);
         for (let id of matchupIds) {
             matchups.delete(id);
         }
-        await writeObjectToFile('./data/matchups.json', matchups);
+        await setMatchups(interaction.guild, matchups);
 
         // remove all messages from the #matchups channel
-        let matchupsChannel = await interaction.client.channels.cache.get(matchUpsId);
+        let matchupsChannel = await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild));
         for (let id of messageIds) {
             await matchupsChannel.messages.fetch(id).then(message => message.delete());
         }

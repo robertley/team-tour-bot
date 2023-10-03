@@ -7,8 +7,8 @@ module.exports = {
 		.setDescription('Refresh Leaderboard'),
 	async execute(interaction) {
 		await interaction.reply('Refreshing leaderboard...');
-        let scoresMap = await getScores();
-        await writeScoresToLeaderboard(interaction.client, scoresMap);
+        let scoresMap = await getScores(interaction.guild);
+        await writeScoresToLeaderboard(interaction.client, scoresMap, interaction.guild);
         await interaction.channel.send('Leaderboard refreshed!');
 	},
 };

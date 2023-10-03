@@ -1,44 +1,13 @@
-const fs = require('node:fs');
-const { matchUpsId, matchUpConfigId, settingsId, leaderboardId } = require('./../config.json');
+const { getReactionMap, setReactionMap, getSettings, getSettingsChannelId, setSettings, getWeeks, setWeeks, getMatchups, setMatchups, getLeaderboardChannelId, getMatchupsChannelId } = require('./database.module.js');
 
-exports.getObjectFromFile = async function getObjectFromFile(filePath) {
-    return new Promise(async (resolve, reject) => {
-        await fs.readFile(filePath, 'utf8', async (err, data) => {
-            if (err){
-                reject(err);
-            } else {
-                if (data == '') {
-                    resolve(null);
-                    return;
-                }
-                object = JSON.parse(data, module.exports.reviver);
-                resolve(object);
-            }
-        });
-    });
-}
-
-exports.writeObjectToFile = async function writeObjectToFile(filePath, object) {
-    return new Promise(async (resolve, reject) => {
-        let objectString = JSON.stringify(object, module.exports.replacer);
-        await fs.writeFile(filePath, objectString, (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
-    });
-}
-
-exports.collectReactions = async function collectReactions(client, week) {
-    let matchupsChannel = client.channels.cache.get(matchUpsId);
+exports.collectReactions = async function collectReactions(client, guild, week) {
+    let matchupsChannel = client.channels.cache.get(await getMatchupsChannelId(guild));
     await matchupsChannel.messages.fetch({ limit: 100 }).then(async messages => {
         console.log(`Received ${messages.size} messages`);
         let mssgArray = Array.from(messages.values());
 
         
-        let reactionMap = await module.exports.getObjectFromFile('./data/reactionMap.json');
+        let reactionMap = await getReactionMap(guild);
         for (let message of mssgArray) {
 
             let messageArray = Array.from(message.reactions.cache.values());
@@ -47,9 +16,7 @@ exports.collectReactions = async function collectReactions(client, week) {
             }
         }
 
-        // console.log('Collected; Reaction Map:\n')
-        // console.log(module.exports.prettyJson(reactionMapString));
-        await module.exports.writeObjectToFile('./data/reactionMap.json', reactionMap);
+        await setReactionMap(guild, reactionMap);
     }).catch(console.error);
 }
 
@@ -97,27 +64,6 @@ async function processReactionEvent(reaction, reactionMap, week) {
             }
         }
     }
-    // if (reactionMapItem) {
-    //     if (reaction.emoji.name == reactionMapItem.team1Emoji) {
-    //         reactionMapItem.team1Votes = users;
-    //     } else {
-    //         reactionMapItem.team2Votes = users;
-    //     }
-    // } else {
-    //     // try to find the message as a matchupMessageId
-    //     for (let [key, value] of reactionMap) {
-    //         let matchupMessage = value;
-    //         for (let message of matchupMessage.matchupMessages) {
-    //             if (message.messageId == reaction.message.id) {
-    //                 if (reaction.emoji.name == message.player1Emoji) {
-    //                     message.player1Votes = users;
-    //                 } else {
-    //                     message.player2Votes = users;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
 }
 
 exports.replacer = function replacer(key, value) {
@@ -163,11 +109,12 @@ exports.prettyJson = function prettyJson(jsonString, map=false) {
     return JSON.stringify(json, null, 2);
 }
 
-exports.writeToSettingsServer = async function writeToSettingsServer(client) {
-    let settings = await module.exports.getObjectFromFile('./data/settings.json');
+exports.writeToSettingsServer = async function writeToSettingsServer(client, guild) {
+    console.log(guild)
+    let settings = await getSettings(guild)
     let settingsString = JSON.stringify(settings, module.exports.replacer);
     let text= "```" + module.exports.prettyJson(settingsString) + "```";
-    let channel = client.channels.cache.get(settingsId);
+    let channel = client.channels.cache.get(await getSettingsChannelId(guild));
 	await channel.messages.fetch({ limit: 1 }).then(async messages => {
 		if (messages.size == 0) {
 			await channel.send(text);
@@ -178,46 +125,47 @@ exports.writeToSettingsServer = async function writeToSettingsServer(client) {
 	});
 }
 
-exports.updateSetting = async function updateSetting(key, value, client) {
-    let settings = await module.exports.getObjectFromFile('./data/settings.json');
+exports.updateSetting = async function updateSetting(key, value, client, guild) {
+    let settings = await getSettings(guild);
     settings[key] = value;
-    await module.exports.writeObjectToFile('./data/settings.json', settings);
-    await module.exports.writeToSettingsServer(client);
+    await setSettings(guild, settings);
+    await module.exports.writeToSettingsServer(client, guild);
 }
 
-exports.finalizeWeek = async function finalizeWeek(week, client) {
-    let weeks = await module.exports.getObjectFromFile('./data/weeks.json');
+exports.finalizeWeek = async function finalizeWeek(week, client, guild) {
+    let weeks = await getWeeks(guild);
     for (let weekObj of weeks) {
         if (weekObj.weekNumber == week) {
             weekObj.finalized = true;
             break;
         }
     }
-    await module.exports.writeObjectToFile('./data/weeks.json', weeks);
-    await module.exports.updateSetting('weeks', weeks, client);
+    await setWeeks(guild, weeks);
+    await module.exports.updateSetting('weeks', weeks, client, guild);
 }
 
-exports.createMatchupObjects = async function createMatchupObjects(objects) {
-    let existingObjects = await module.exports.getObjectFromFile('./data/matchups.json');
+exports.createMatchupObjects = async function createMatchupObjects(objects, guild) {
+    let existingObjects = await getMatchups(guild);
     for (let object of objects) {
         existingObjects.set(object.id, object);
     }
-    await module.exports.writeObjectToFile('./data/matchups.json', existingObjects);
+    await setMatchups(guild, existingObjects);
 }
 
-exports.setMatchupWinner = async function setMatchupWinner(id, winner) {
+exports.setMatchupWinner = async function setMatchupWinner(id, winner, guild) {
+    console.log(guild)
     // console.log('setting winner...', id, winner)
-    let matchups = await module.exports.getObjectFromFile('./data/matchups.json');
+    let matchups = await getMatchups(guild);
     let matchup = matchups.get(id);
     matchup.winner = winner;
-    await module.exports.writeObjectToFile('./data/matchups.json', matchups);
+    await setMatchups(guild, matchups);
 }
 
-exports.getScores = async function getScores() {
-    let matchups = await module.exports.getObjectFromFile('./data/matchups.json');
-    let reactionMap = await module.exports.getObjectFromFile('./data/reactionMap.json');
+exports.getScores = async function getScores(guild) {
+    let matchups = await getMatchups(guild);
+    let reactionMap = await getReactionMap(guild);
     let scoresMap = new Map();
-    let weeks = await module.exports.getObjectFromFile('./data/weeks.json');
+    let weeks = await getWeeks(guild);
     let lastWeek;
     if (weeks) {
         lastWeek = weeks[weeks.length - 1].weekNumber;
@@ -307,7 +255,7 @@ function addUserScore(score, user, scoresMap, lastWeek) {
     }
 }
 
-exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(client, scoresMap) {
+exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(client, scoresMap, guild) {
     let leaderboard = [];
     for (let [key, value] of scoresMap) {
         let user = await client.users.fetch(key);
@@ -368,7 +316,7 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
 
     leaderboardString += '```';
 
-    let channel = client.channels.cache.get(leaderboardId);
+    let channel = client.channels.cache.get(await getLeaderboardChannelId(guild));
     await channel.messages.fetch({ limit: 1 }).then(async messages => {
         if (messages.size == 0) {
             await channel.send(leaderboardString);
@@ -383,8 +331,8 @@ function max(a, b) {
     return Math.max(a, b);
 }
 
-exports.validWeek = async function validWeek(week) {
-    let weeks = await module.exports.getObjectFromFile('./data/weeks.json');
+exports.validWeek = async function validWeek(week, guild) {
+    let weeks = await getWeeks(guild);
     for (let weekObj of weeks) {
         if (weekObj.weekNumber == week) {
             return !weekObj.finalized;

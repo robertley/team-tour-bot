@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { collectReactions, prettyJson, getObjectFromFile, finalizeWeek } = require('./../../modules/functions.module.js'); 
+const { collectReactions, prettyJson, finalizeWeek } = require('./../../modules/functions.module.js'); 
+const { getObjectFromFile, writeObjectToFile, getWeeks, getMatchupsChannelId } = require('./../../modules/database.module.js');
 const fs = require('node:fs');
-const { reactionsId, matchUpsId } = require('./../../config.json');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -15,15 +15,15 @@ module.exports = {
 		try {
 			interaction.reply({ content: 'Collecting reactions...', ephemeral: true });
 			let week = interaction.options.getString('week');
-			let storedWeeks = await getObjectFromFile('./data/weeks.json');
+			let storedWeeks = await getWeeks(interaction.guild);
 			let storedWeek = storedWeeks.find(storedWeek => storedWeek.weekNumber == week);
 			if (storedWeek.finalized) {
 				return interaction.channel.send({ content: `Week ${week} has been finalized.`});
 			}
-			await collectReactions(interaction.client, week);
+			await collectReactions(interaction.client, interaction.guild, week);
 			// await postReactionsToChannel(interaction.client);
-			await finalizeWeek(week, interaction.client)
-			await interaction.client.channels.cache.get(matchUpsId).send({ content: `_Week ${week} picks have been finalized. All picks made before this message has been sent will count towards your score. New picks for week ${week} will not be counted._`});
+			await finalizeWeek(week, interaction.client, interaction.guild)
+			await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild)).send({ content: `_Week ${week} picks have been finalized. All picks made before this message has been sent will count towards your score. New picks for week ${week} will not be counted._`});
 			interaction.channel.send({ content: `Reactions collected. Week ${week} reactions been finalized.`})
 			// await postReactionsToChannel();
 		} catch (error) {

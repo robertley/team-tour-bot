@@ -41,3 +41,51 @@
         "player5": "Oscar"
     }
 }
+
+{
+    "week": "1",
+    "team1": {
+        "name": "Coral",
+        "emoji": "🐟",
+        "player1": "coral",
+        "player2": "carl",
+        "player3": "corall!",
+        "player4": "carol",
+        "player5": "carl wheezer"
+    },
+    "team2": {
+        "name": "Berty",
+        "emoji": "🐔",
+        "player1": "Bert",
+        "player2": "Wert",
+        "player3": "robbb",
+        "player4": "bob",
+        "player5": "burt"
+    }
+}
+
+{
+    "week": "2",
+    "team1": {
+        "name": "Custom Emoji",
+        "emoji": "⭐",
+        "player1": "aasd",
+        "player2": "ddd",
+        "player3": "Johndasd!",
+        "player4": "nothdanks",
+        "player5": "fereasdal",
+        "player6": "player 6",
+        "player7": "player 7"
+    },
+    "team2": {
+        "name": "Normal Emoji",
+        "emoji": "❤️",
+        "player1": "poo",
+        "player2": "asd",
+        "player3": "weert",
+        "player4": "aqwe",
+        "player5": "fda",
+        "player6": "play6",
+        "player7": "play7"
+    }
+}

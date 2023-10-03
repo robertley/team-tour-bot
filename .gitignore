@@ -1,4 +1,5 @@
 config.json
+config-old.json
 .env
 /node_modules
 /data

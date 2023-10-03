@@ -1,18 +1,20 @@
 const { SlashCommandBuilder, ChannelType, ButtonBuilder,ActionRowBuilder } = require('discord.js');
-const { matchUpsId, matchUpConfigId, guildId, pickemId } = require('./../../config.json');
-const { getObjectFromFile, writeObjectToFile, createMatchupObjects, setMatchupWinner } = require('../../modules/functions.module');
+const { createMatchupObjects, setMatchupWinner } = require('../../modules/functions.module');
+const { getObjectFromFile, writeObjectToFile, getReactionMap, getLastMatchupMessage, setReactionMap, setLastMatchupMessage, getMatchupsChannelId, getConsoleChannelId, getPickemsMatchupCategoryId } = require('./../../modules/database.module.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('commit-matchups')
 		.setDescription('Send the last created matchups in the config channel to the matchups channel.'),
 	async execute(interaction) {
-        let matchupsChannel = await interaction.client.channels.cache.get(matchUpsId);
-        let matchupConfigChannel = await interaction.client.channels.cache.get(matchUpConfigId);
+        let matchupsChannelId = await getMatchupsChannelId(interaction.guild);
+        let consoleChannelId = await getConsoleChannelId(interaction.guild);
+        let matchupsChannel = await interaction.client.channels.cache.get(matchupsChannelId);
+        let matchupConfigChannel = await interaction.client.channels.cache.get(consoleChannelId);
         try {
             interaction.reply('Committing matchups...');
-            let reactionMap = await getObjectFromFile('./data/reactionMap.json');
-            let matchupData = await getObjectFromFile('./data/lastMatchupMessages.json');
+            let reactionMap = await getReactionMap(interaction.guild);
+            let matchupData = await getLastMatchupMessage(interaction.guild);
 
             // check if matchups channel is empty object
             if (Object.keys(matchupData).length === 0) {
@@ -98,10 +100,10 @@ module.exports = {
     
             }
 
-            await createMatchupObjects(matchupObjects);
-            writeObjectToFile('./data/reactionMap.json', reactionMap);
-            writeObjectToFile('./data/lastMatchupMessages.json', {});
-            await createPickemMatchupChannels(interaction.client, reactionMapItem, matchupData.week);
+            await createMatchupObjects(matchupObjects, interaction.guild);
+            await setReactionMap(interaction.guild, reactionMap);
+            await setLastMatchupMessage(interaction.guild, {});
+            await createPickemMatchupChannels(interaction.client, interaction.guild, reactionMapItem, matchupData.week);
             matchupConfigChannel.send('Matchups committed.');
         } catch (error) {
             console.log(error);
@@ -110,7 +112,9 @@ module.exports = {
 	}
 };
 
-async function createPickemMatchupChannels(client, reactionMapItem, week) {
+async function createPickemMatchupChannels(client, guild, reactionMapItem, week) {
+    let guildId = guild.id;
+    let pickemId = await getPickemsMatchupCategoryId(guild);
     let parent = await client.guilds.cache.get(guildId).channels.cache.get(pickemId);
     let channel = await client.guilds.cache.get(guildId).channels.create({
         name: `${week} ${reactionMapItem.team1} vs ${reactionMapItem.team2}`,
