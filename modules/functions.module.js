@@ -172,11 +172,21 @@ exports.getScores = async function getScores(guild) {
                 let usersCorrect;
                 let usersIncorrect;
                 if (winner == 1) {
-                    usersCorrect = item.team1Votes;
-                    usersIncorrect = item.team2Votes;
+                    usersCorrect = new Set(item.team1Votes);
+                    usersIncorrect = new Set(item.team2Votes);
                 } else {
-                    usersCorrect = item.team2Votes;
-                    usersIncorrect = item.team1Votes;
+                    usersCorrect = new Set(item.team2Votes);
+                    usersIncorrect = new Set(item.team1Votes);
+                }
+                let removeUsers = [];
+                for (let user of usersCorrect) {
+                    if (usersIncorrect.has(user)) {
+                        removeUsers.push(user);
+                    }
+                }
+                for (let user of removeUsers) {
+                    usersCorrect.delete(user);
+                    usersIncorrect.delete(user);
                 }
                 for (let user of usersCorrect) {
                     addUserScore('correct', user, scoresMap, isLastWeek);
@@ -192,11 +202,21 @@ exports.getScores = async function getScores(guild) {
                     let usersCorrect;
                     let usersIncorrect;
                     if (winner == 1) {
-                        usersCorrect = message.player1Votes;
-                        usersIncorrect = message.player2Votes;
+                        usersCorrect = new Set(message.player1Votes);
+                        usersIncorrect = new Set(message.player2Votes);
                     } else {
-                        usersCorrect = message.player2Votes;
-                        usersIncorrect = message.player1Votes;
+                        usersCorrect = new Set(message.player2Votes);
+                        usersIncorrect = new Set(message.player1Votes);
+                    }
+                    let removeUsers = [];
+                    for (let user of usersCorrect) {
+                        if (usersIncorrect.has(user)) {
+                            removeUsers.push(user);
+                        }
+                    }
+                    for (let user of removeUsers) {
+                        usersCorrect.delete(user);
+                        usersIncorrect.delete(user);
                     }
                     for (let user of usersCorrect) {
                         addUserScore('correct', user, scoresMap, isLastWeek);
@@ -247,7 +267,8 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
             user: user.username,
             correct: `${value.correct}`,
             incorrect: `${value.incorrect}`,
-            score: `${value.correct - value.incorrect}`
+            score: `${value.correct - value.incorrect}`,
+            scoreVal: value.correct - value.incorrect
         }
         if (value.lastWeekCorrect > 0) {
             scoreObject.correct += ` (${value.lastWeekCorrect < 1 ? '-' : '+'}${value.lastWeekCorrect})`;
@@ -261,7 +282,7 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
         leaderboard.push(scoreObject);
     }
     leaderboard.sort((a, b) => {
-        return b.score - a.score;
+        return b.scoreVal - a.scoreVal
     });
     let leaderboardString = '';
     let colLength = [];
@@ -269,7 +290,7 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
     for (let i = 0; i < header.length; i++) {
         colLength.push(header[i].length);
     }
-    console.log(colLength)
+
     for (let i = 0; i < leaderboard.length; i++) {
         let scoreObject = leaderboard[i];
         colLength[0] = max(colLength[0], i + 1);
@@ -287,7 +308,6 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
     leaderboardString += `${header[4]}`.padEnd(colLength[4] + 2, ' ');
     leaderboardString += '\n';
 
-    console.log(colLength);
     for (let i = 0; i < leaderboard.length; i++) {
         let scoreObject = leaderboard[i];
         leaderboardString += `${i + 1}`.padEnd(colLength[0] + 2, ' ');
