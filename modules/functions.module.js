@@ -12,7 +12,7 @@ exports.collectReactions = async function collectReactions(client, guild, week) 
 
             let messageArray = Array.from(message.reactions.cache.values());
             for (let reaction of messageArray) {
-                await processReactionEvent(reaction, reactionMap, week);
+                await processReactionEvent(reaction, reactionMap, week, message);
             }
         }
 
@@ -20,21 +20,13 @@ exports.collectReactions = async function collectReactions(client, guild, week) 
     }).catch(console.error);
 }
 
-async function processReactionEvent(reaction, reactionMap, week) {
-    let users;
-    try {
-        users = await getReactedUsers(reaction.message, reaction.message.channel.id, reaction.message.id, reaction.emoji.name, reaction.emoji.id);
-    } catch (error) {
-        console.log('Error getting reacted users', reaction.message.id, reaction.message.channel.id, reaction.emoji.name, error);
-        throw error;
-    }
-
-    // console.log(users);
+async function processReactionEvent(reaction, reactionMap, week, msg) {
 
     // try to find the message as a teamMessageId
     let matchupItems = reactionMap.get(week);
     for (let item of matchupItems) {
         if (item.teamMessageId == reaction.message.id) {
+            let users = await getReactedUsers(reaction.emoji.name, reaction.emoji.id, msg);
             let team1Emoji = item.team1Emoji.substring(item.team1Emoji.indexOf(':') + 1, item.team1Emoji.lastIndexOf(':'));
             if (team1Emoji == '') {
                 team1Emoji = item.team1Emoji;
@@ -51,6 +43,7 @@ async function processReactionEvent(reaction, reactionMap, week) {
         }
         for (message of item.matchupMessages) {
             if (message.messageId == reaction.message.id) {
+                let users = await getReactedUsers(reaction.emoji.name, reaction.emoji.id, msg);
                 let player1Emoji = message.player1Emoji.substring(message.player1Emoji.indexOf(':') + 1, message.player1Emoji.lastIndexOf(':')) ?? message.player1Emoji;
                 if (player1Emoji == '') {
                     player1Emoji = message.player1Emoji;
@@ -87,20 +80,12 @@ exports.reviver = function reviver(key, value) {
 }
 
 
-async function getReactedUsers(msg, channelID, messageID, emoji, customEmojiId) {
-    let cacheChannel = msg.guild.channels.cache.get(channelID);
-    // console.log(cacheChannel)
-    let users = [];
-    if(cacheChannel){
-        await cacheChannel.messages.fetch(messageID).then(async reactionMessage => {
-            // console.log('reactionMessage', reactionMessage)
-           await reactionMessage.reactions.resolve(customEmojiId ?? emoji).users.fetch().then(userList => {
-                users = userList
-                .filter((user) => !user.bot)
-                .map((user) => user.id)
-            });
-        });
-    }
+async function getReactedUsers(emoji, customEmojiId, message) {
+    await message.reactions.resolve(customEmojiId ?? emoji).users.fetch().then(userList => {
+        users = userList
+        .filter((user) => !user.bot)
+        .map((user) => user.id)
+    });
     return users;
 }
  

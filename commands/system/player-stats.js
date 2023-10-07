@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { getReactionMap, getMatchups, getMatchupsChannelId, getWeeks } = require('./../../modules/database.module.js');
+const { getReactionMap, getMatchups } = require('./../../modules/database.module.js');
 const { getScores } = require('../../modules/functions.module.js');
 const { EmbedBuilder } = require('discord.js');
 
