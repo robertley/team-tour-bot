@@ -1,4 +1,4 @@
-const { ChannelType } = require('discord.js');
+const { ChannelType, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 
 exports.initNewServer = async function initNewServer (guild, client) {
@@ -16,13 +16,61 @@ exports.initNewServer = async function initNewServer (guild, client) {
 
 // TODO: default permissions
 createDefaultChannels = async function createDefaultChannels (guild, client) {
+    let adminRole = await guild.roles.create({ name: "Pick'em Admin" });
+    let privatePermissionOverwrites = [
+        {
+            id: guild.id,
+            deny: [PermissionFlagsBits.ViewChannel],
+        },
+        {
+            id: adminRole.id,
+            allow: [PermissionFlagsBits.ViewChannel],
+        },
+    ]
+    let publicPermissionOverwrites = [
+        {
+            id: guild.id,
+            allow: [PermissionFlagsBits.ViewChannel],
+            deny: [PermissionFlagsBits.SendMessages]
+        },
+    ]
+
     let category = await guild.channels.create({ name: 'pickems', type: ChannelType.GuildCategory });
-    let consoleC = await guild.channels.create({ name: 'pickems-console', type: ChannelType.GuildText, parent: category });
-    let matchups = await guild.channels.create({ name: 'matchups', type: ChannelType.GuildText, parent: category });
-    let leaderboard = await guild.channels.create({ name: 'leaderboard', type: ChannelType.GuildText, parent: category });
-    let settings = await guild.channels.create({ name: 'settings', type: ChannelType.GuildText, parent: category });
-    let pickemsMatchupCategory = await guild.channels.create({ name: 'pickems-matchups', type: ChannelType.GuildCategory });
-    let pickemsMatchupArchiveCategory = await guild.channels.create({ name: 'pickems-matchups-archive', type: ChannelType.GuildCategory });
+    let consoleC = await guild.channels.create({
+        name: 'pickems-console',
+        type: ChannelType.GuildText,
+        parent: category,
+        permissionOverwrites: privatePermissionOverwrites,
+        
+    });
+    let matchups = await guild.channels.create({
+        name: 'matchups',
+        type: ChannelType.GuildText,
+        parent: category,
+        permissionOverwrites: publicPermissionOverwrites
+    });
+    let leaderboard = await guild.channels.create({
+        name: 'leaderboard',
+        type: ChannelType.GuildText,
+        parent: category,
+        permissionOverwrites: publicPermissionOverwrites
+    });
+    let settings = await guild.channels.create({
+        name: 'settings',
+        type: ChannelType.GuildText,
+        parent: category,
+        permissionOverwrites: privatePermissionOverwrites
+    });
+    let pickemsMatchupCategory = await guild.channels.create({
+        name: 'pickems-matchups',
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: privatePermissionOverwrites
+    });
+    let pickemsMatchupArchiveCategory = await guild.channels.create({
+        name: 'pickems-matchups-archive',
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: privatePermissionOverwrites
+    });
 
     // init settings
     let settingsObject = {

@@ -261,6 +261,7 @@ function addUserScore(score, user, scoresMap, lastWeek) {
 
 exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(client, scoresMap, guild) {
     let leaderboard = [];
+
     for (let [key, value] of scoresMap) {
         let user = await client.users.fetch(key);
         let scoreObject = {
@@ -281,19 +282,22 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
         }
         leaderboard.push(scoreObject);
     }
+    
     leaderboard.sort((a, b) => {
         return b.scoreVal - a.scoreVal
     });
     let leaderboardString = '';
     let colLength = [];
     let header = ['Rank', 'User', 'Correct', 'Incorrect', 'Score'];
+    let leaderboardPositions = Math.min(50, leaderboard.length)
+
     for (let i = 0; i < header.length; i++) {
         colLength.push(header[i].length);
     }
 
-    for (let i = 0; i < leaderboard.length; i++) {
+    for (let i = 0; i < leaderboardPositions; i++) {
         let scoreObject = leaderboard[i];
-        colLength[0] = max(colLength[0], i + 1);
+        colLength[0] = max(colLength[0], `${i + 1}`.length);
         colLength[1] = max(colLength[1], scoreObject.user.length);
         colLength[2] = max(colLength[2], `${scoreObject.correct}`.length);
         colLength[3] = max(colLength[3], `${scoreObject.incorrect}`.length);
@@ -308,7 +312,7 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
     leaderboardString += `${header[4]}`.padEnd(colLength[4] + 2, ' ');
     leaderboardString += '\n';
 
-    for (let i = 0; i < leaderboard.length; i++) {
+    for (let i = 0; i < leaderboardPositions; i++) {
         let scoreObject = leaderboard[i];
         leaderboardString += `${i + 1}`.padEnd(colLength[0] + 2, ' ');
         leaderboardString += `${scoreObject.user}`.padEnd(colLength[1] + 2, ' ');
@@ -318,16 +322,23 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
         leaderboardString += '\n';
     }
 
-    leaderboardString += '```';
+    leaderboardString += '```\n';
+
+    leaderboardString += `${leaderboard.length} players total`
+
+    let embed = {
+        title: `Pick'ems Leaderboard`,
+        description: leaderboardString
+    }
 
     let channel = client.channels.cache.get(await getLeaderboardChannelId(guild));
     await channel.messages.fetch({ limit: 1 }).then(async messages => {
         if (messages.size == 0) {
-            await channel.send(leaderboardString);
+            await channel.send({ embeds: [embed]});
             return;
         }
         let messageArray = Array.from(messages.values());
-        await messageArray[0].edit(leaderboardString);
+        await messageArray[0].edit({ embeds: [embed]});
     });
 }
 

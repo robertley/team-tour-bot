@@ -23,7 +23,7 @@ module.exports = {
 			await collectReactions(interaction.client, interaction.guild, week);
 			// await postReactionsToChannel(interaction.client);
 			await finalizeWeek(week, interaction.client, interaction.guild)
-			await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild)).send({ content: `_Week ${week} picks have been finalized. All picks made before this message has been sent will count towards your score. New picks for week ${week} will not be counted._`});
+			await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild)).send({ content: `_Week ${week} picks have been finalized. All picks made after the timestamp on this message for week ${week} will not be counted._`});
 			interaction.channel.send({ content: `Reactions collected. Week ${week} reactions been finalized.`})
 			// await postReactionsToChannel();
 		} catch (error) {

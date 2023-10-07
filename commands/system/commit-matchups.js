@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType, ButtonBuilder,ActionRowBuilder } = require('discord.js');
+const { SlashCommandBuilder, ChannelType, ButtonBuilder,ActionRowBuilder, PermissionFlagsBits } = require('discord.js');
 const { createMatchupObjects, setMatchupWinner } = require('../../modules/functions.module');
 const { getObjectFromFile, writeObjectToFile, getReactionMap, getLastMatchupMessage, setReactionMap, setLastMatchupMessage, getMatchupsChannelId, getConsoleChannelId, getPickemsMatchupCategoryId } = require('./../../modules/database.module.js');
 
@@ -116,10 +116,21 @@ async function createPickemMatchupChannels(client, guild, reactionMapItem, week)
     let guildId = guild.id;
     let pickemId = await getPickemsMatchupCategoryId(guild);
     let parent = await client.guilds.cache.get(guildId).channels.cache.get(pickemId);
+    let role = await guild.roles.cache.find(role => role.name === "Pick'em Admin");
     let channel = await client.guilds.cache.get(guildId).channels.create({
         name: `${week} ${reactionMapItem.team1} vs ${reactionMapItem.team2}`,
         type: ChannelType.GUILD_TEXT,
-        parent: parent
+        parent: parent,
+        permissionOverwrites: [
+            {
+                id: guildId,
+                deny: [PermissionFlagsBits.ViewChannel],
+            },
+            {
+                id: role.id,
+                allow: [PermissionFlagsBits.ViewChannel]
+            }
+        ],
     });
 
     const team1 = new ButtonBuilder()
