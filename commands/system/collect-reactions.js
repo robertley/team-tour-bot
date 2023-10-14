@@ -15,15 +15,15 @@ module.exports = {
 		try {
 			interaction.reply({ content: 'Collecting reactions...', ephemeral: true });
 			let week = interaction.options.getString('week');
-			let storedWeeks = await getWeeks(interaction.guild);
-			let storedWeek = storedWeeks.find(storedWeek => storedWeek.weekNumber == week);
-			if (storedWeek.finalized) {
-				return interaction.channel.send({ content: `Week ${week} has been finalized.`});
-			}
+			// let storedWeeks = await getWeeks(interaction.guild);
+			// let storedWeek = storedWeeks.find(storedWeek => storedWeek.weekNumber == week);
+			// if (storedWeek.finalized) {
+			// 	return interaction.channel.send({ content: `Week ${week} has been finalized.`});
+			// }
 			await collectReactions(interaction.client, interaction.guild, week);
 			// await postReactionsToChannel(interaction.client);
-			await finalizeWeek(week, interaction.client, interaction.guild)
-			await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild)).send({ content: `_Week ${week} picks have been finalized. All picks made after the timestamp on this message for week ${week} will not be counted._`});
+			// await finalizeWeek(week, interaction.client, interaction.guild)
+			await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild)).send({ content: `_The above matchups have been finalized. All picks made after the timestamp on this message will not be counted._`});
 			interaction.channel.send({ content: `Reactions collected. Week ${week} reactions been finalized.`})
 			// await postReactionsToChannel();
 		} catch (error) {

@@ -144,8 +144,8 @@ client.on(Events.MessageCreate, async message => {
             message.reply('The week number is invalid.');
             return;
         }
-        let team1Emoji = matchUpConfig.team1.emoji;
-        let team2Emoji = matchUpConfig.team2.emoji;
+        let team1Emoji = matchUpConfig.team1.emoji.trim();
+        let team2Emoji = matchUpConfig.team2.emoji.trim();
         let team1 = matchUpConfig.team1;
         let team2 = matchUpConfig.team2;
         let playerCount = 0;

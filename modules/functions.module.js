@@ -6,13 +6,21 @@ exports.collectReactions = async function collectReactions(client, guild, week) 
         console.log(`Received ${messages.size} messages`);
         let mssgArray = Array.from(messages.values());
 
-        
+        let finalizedMatchups = [];
         let reactionMap = await getReactionMap(guild);
         for (let message of mssgArray) {
 
             let messageArray = Array.from(message.reactions.cache.values());
             for (let reaction of messageArray) {
-                await processReactionEvent(reaction, reactionMap, week, message);
+                finalizedMatchups.push(...await processReactionEvent(reaction, reactionMap, week, message));
+            }
+        }
+
+        console.log('finalizedMatchups', finalizedMatchups);
+
+        for (let matchup of reactionMap.get(week)) {
+            if (finalizedMatchups.includes(matchup.teamMessageId)) {
+                matchup.finalized = true;
             }
         }
 
@@ -21,10 +29,13 @@ exports.collectReactions = async function collectReactions(client, guild, week) 
 }
 
 async function processReactionEvent(reaction, reactionMap, week, msg) {
-
+    let finalizedMatchups = new Set();
     // try to find the message as a teamMessageId
     let matchupItems = reactionMap.get(week);
     for (let item of matchupItems) {
+        if (item.finalized) {
+            continue;
+        }
         if (item.teamMessageId == reaction.message.id) {
             let users = await getReactedUsers(reaction.emoji.name, reaction.emoji.id, msg);
             let team1Emoji = item.team1Emoji.substring(item.team1Emoji.indexOf(':') + 1, item.team1Emoji.lastIndexOf(':'));
@@ -38,7 +49,7 @@ async function processReactionEvent(reaction, reactionMap, week, msg) {
             } else {
                 item.team2Votes = users;
             }
-
+            finalizedMatchups.add(item.teamMessageId);
             break;
         }
         for (message of item.matchupMessages) {
@@ -57,6 +68,8 @@ async function processReactionEvent(reaction, reactionMap, week, msg) {
             }
         }
     }
+
+    return Array.from(finalizedMatchups);
 }
 
 exports.replacer = function replacer(key, value) {

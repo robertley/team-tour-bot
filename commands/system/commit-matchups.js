@@ -50,7 +50,8 @@ module.exports = {
                 team2Emoji: '',
                 team1Votes: [],
                 team2Votes: [],
-                matchupMessages: []
+                matchupMessages: [],
+                // finalized: false
             }
 
             matchupObjects.push({
