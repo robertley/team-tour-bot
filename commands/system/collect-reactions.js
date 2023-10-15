@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { collectReactions, prettyJson, finalizeWeek } = require('./../../modules/functions.module.js'); 
+const { collectReactions, prettyJson, finalizeWeek, getScores, writeScoresToLeaderboard } = require('./../../modules/functions.module.js'); 
 const { getObjectFromFile, writeObjectToFile, getWeeks, getMatchupsChannelId } = require('./../../modules/database.module.js');
 const fs = require('node:fs');
 
@@ -25,6 +25,9 @@ module.exports = {
 			// await finalizeWeek(week, interaction.client, interaction.guild)
 			await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild)).send({ content: `_The above matchups have been finalized. All picks made after the timestamp on this message will not be counted._`});
 			interaction.channel.send({ content: `Reactions collected. Week ${week} reactions been finalized.`})
+			let scoresMap = await getScores(interaction.guild);
+			await writeScoresToLeaderboard(interaction.client, scoresMap, interaction.guild);
+			interaction.channel.send({ content: 'Leaderboard refreshed!'});
 			// await postReactionsToChannel();
 		} catch (error) {
 			console.error(error);
