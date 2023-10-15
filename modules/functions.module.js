@@ -1,7 +1,8 @@
 const { getReactionMap, setReactionMap, getSettings, setSettings, getWeeks, setWeeks, getMatchups, setMatchups, getLeaderboardChannelId, getMatchupsChannelId, writeToSettingsServer } = require('./database.module.js');
 
-exports.collectReactions = async function collectReactions(client, guild, week) {
+exports.collectReactions = async function collectReactions(client, guild, week, test) {
     let matchupsChannel = client.channels.cache.get(await getMatchupsChannelId(guild));
+    let resp;
     await matchupsChannel.messages.fetch({ limit: 100 }).then(async messages => {
         console.log(`Received ${messages.size} messages`);
         let mssgArray = Array.from(messages.values());
@@ -16,16 +17,30 @@ exports.collectReactions = async function collectReactions(client, guild, week) 
             }
         }
 
-        console.log('finalizedMatchups', finalizedMatchups);
-
         for (let matchup of reactionMap.get(week)) {
             if (finalizedMatchups.includes(matchup.teamMessageId)) {
                 matchup.finalized = true;
             }
         }
+        if (!test) {
+            await setReactionMap(guild, reactionMap);
+        } else {
+            let weekReactions = reactionMap.get(week);
+            console.log('weekReactions', weekReactions);
+            for (let matchup of weekReactions) {
+                console.log('matchup', matchup);
+                matchup.team1Votes = matchup.team1Votes.length;
+                matchup.team2Votes = matchup.team2Votes.length;
+                for (let message of matchup.matchupMessages) {
+                    message.player1Votes = message.player1Votes.length;
+                    message.player2Votes = message.player2Votes.length;
+                }
+            }
+            resp = weekReactions;
+        }
 
-        await setReactionMap(guild, reactionMap);
     }).catch(console.error);
+    return resp;
 }
 
 async function processReactionEvent(reaction, reactionMap, week, msg) {

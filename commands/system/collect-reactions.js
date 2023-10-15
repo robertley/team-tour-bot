@@ -20,7 +20,7 @@ module.exports = {
 			// if (storedWeek.finalized) {
 			// 	return interaction.channel.send({ content: `Week ${week} has been finalized.`});
 			// }
-			await collectReactions(interaction.client, interaction.guild, week);
+			await collectReactions(interaction.client, interaction.guild, week, false);
 			// await postReactionsToChannel(interaction.client);
 			// await finalizeWeek(week, interaction.client, interaction.guild)
 			await interaction.client.channels.cache.get(await getMatchupsChannelId(interaction.guild)).send({ content: `_The above matchups have been finalized. All picks made after the timestamp on this message will not be counted._`});
