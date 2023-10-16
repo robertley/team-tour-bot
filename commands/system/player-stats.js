@@ -108,8 +108,9 @@ module.exports = {
 
         let prevRank = 1;
         let prevScore = 0;
+        let rank = 1;
         for (let i = 0; i < leaderboard.length; i++) {
-            let rank = i+1;
+            rank = i+1;
             if (leaderboard[i].score = prevScore) {
                 rank = prevRank;
             }
