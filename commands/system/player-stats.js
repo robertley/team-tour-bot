@@ -111,7 +111,7 @@ module.exports = {
         let rank = 1;
         for (let i = 0; i < leaderboard.length; i++) {
             rank = i+1;
-            if (leaderboard[i].score = prevScore) {
+            if (leaderboard[i].score == prevScore) {
                 rank = prevRank;
             }
             prevRank = rank;
