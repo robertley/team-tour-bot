@@ -106,12 +106,18 @@ module.exports = {
 
         console.log(leaderboard)
 
-        let rank = 1;
+        let prevRank = 1;
+        let prevScore = 0;
         for (let i = 0; i < leaderboard.length; i++) {
+            let rank = i+1;
+            if (leaderboard[i].score = prevScore) {
+                rank = prevRank;
+            }
+            prevRank = rank;
             if (leaderboard[i].user == user.id) {
                 break;
             }
-            rank++;
+            prevScore = leaderboard[i].score;
         }
 
         let reply = `**${user.username}'s Pick'em Stats**\n`;

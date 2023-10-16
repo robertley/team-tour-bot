@@ -325,14 +325,22 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
     leaderboardString += `${header[4]}`.padEnd(colLength[4] + 2, ' ');
     leaderboardString += '\n';
 
+    let prevScore = 0;
+    let prevRank = 0;
     for (let i = 0; i < leaderboardPositions; i++) {
         let scoreObject = leaderboard[i];
-        leaderboardString += `${i + 1}`.padEnd(colLength[0] + 2, ' ');
+        let rank = i + 1;
+        if (scoreObject.scoreVal == prevScore) {
+            rank = prevRank;
+        }
+        prevRank = rank;
+        leaderboardString += `${rank}`.padEnd(colLength[0] + 2, ' ');
         leaderboardString += `${scoreObject.user}`.padEnd(colLength[1] + 2, ' ');
         leaderboardString += `${scoreObject.correct}`.padEnd(colLength[2] + 2, ' ');
         leaderboardString += `${scoreObject.incorrect}`.padEnd(colLength[3] + 2, ' ');
         leaderboardString += `${scoreObject.score}`.padEnd(colLength[4] + 2, ' ');
         leaderboardString += '\n';
+        prevScore = scoreObject.scoreVal;
     }
 
     leaderboardString += '```\n';
