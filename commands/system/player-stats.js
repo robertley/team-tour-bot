@@ -59,7 +59,7 @@ module.exports = {
                     voted = reaction[`team${vote}`];
                 }
                 if (winner != 0) {
-                    voted += winner == voted ? ' ✅' : ' ❌';
+                    voted += winner == vote ? ' ✅' : ' ❌';
                 }
                 message += `Voted: ${voted}\n`;
 
