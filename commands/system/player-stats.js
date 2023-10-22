@@ -14,13 +14,24 @@ module.exports = {
         .addStringOption(option =>
             option.setName('week')
                 .setDescription('The week you want to see pick stats for.')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('emoji')
+                .setDescription('Emoji of a team in the matchup you want to check your pick stats for.')
                 .setRequired(false)),
     async execute(interaction) {
         let user = interaction.options.getUser('player');
 
         let scores = await getScores(interaction.guild);
         let score = scores.get(user.id);
-        let week = interaction.options.getString('week');
+        let week = interaction.options.getString('week').trim();
+        let emoji = interaction.options.getString('emoji').trim();
+        if (week != null && emoji == null) {
+            return interaction.reply({ content: 'You must specify an emoji if you specify a week.', ephemeral: true });
+        }
+        if (week == null && emoji != null) {
+            return interaction.reply({ content: 'You must specify a week if you specify an emoji.', ephemeral: true });
+        }
 
         let matchupMessages = [];
         if (week != null) {
@@ -28,7 +39,11 @@ module.exports = {
             let reactionMap = await getReactionMap(interaction.guild);
             let reactions = reactionMap.get(week + '');
             if (reactions == null) {
-                return interaction.reply('Invalid week.');
+                return interaction.reply({ content: 'Invalid week.', ephemeral: true });
+            }
+            reactions = reactions.filter(reaction => reaction.team1Emoji == emoji || reaction.team2Emoji == emoji);
+            if (reactions.length == 0) {
+                return interaction.reply({ content: 'Invalid emoji.', ephemeral: true });
             }
             for (let reaction of reactions) {
                 let message = `${reaction.teamMessage}\n`;
