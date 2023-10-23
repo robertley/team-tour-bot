@@ -179,6 +179,6 @@ module.exports = {
         let matchupsChannelId = await getMatchupsChannelId(interaction.guild);
         let matchupsChannel = await interaction.client.channels.cache.get(matchupsChannelId);
 
-        // await matchupsChannel.send({ embeds: [embed]});
+        await matchupsChannel.send({ embeds: [embed]});
     }
 };
