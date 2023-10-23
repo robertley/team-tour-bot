@@ -158,13 +158,12 @@ exports.setMatchupWinner = async function setMatchupWinner(id, winner, guild) {
     await setMatchups(guild, matchups);
 }
 
-exports.getScores = async function getScores(guild) {
+exports.getScores = async function getScores(guild, lastWeek=null) {
     let matchups = await getMatchups(guild);
     let reactionMap = await getReactionMap(guild);
     let scoresMap = new Map();
     let weeks = await getWeeks(guild);
-    let lastWeek;
-    if (weeks) {
+    if (weeks && lastWeek == null) {
         lastWeek = weeks[weeks.length - 1].weekNumber;
     }
 
