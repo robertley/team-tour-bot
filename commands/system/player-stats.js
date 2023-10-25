@@ -26,15 +26,15 @@ module.exports = {
         let score = scores.get(user.id);
         let week = interaction.options.getString('week')?.trim();
         let emoji = interaction.options.getString('emoji')?.trim();
-        if (week != null && emoji == null) {
-            return interaction.reply({ content: 'You must specify an emoji if you specify a week.', ephemeral: true });
-        }
+        // if (week != null && emoji == null) {
+        //     return interaction.reply({ content: 'You must specify an emoji if you specify a week.', ephemeral: true });
+        // }
         if (week == null && emoji != null) {
             return interaction.reply({ content: 'You must specify a week if you specify an emoji.', ephemeral: true });
         }
 
         let matchupMessages = [];
-        if (week != null) {
+        if (week != null && emoji != null) {
             let matchupsMap = await getMatchups(interaction.guild);
             let reactionMap = await getReactionMap(interaction.guild);
             let reactions = reactionMap.get(week + '');
@@ -143,15 +143,19 @@ module.exports = {
         reply += `**Incorrect**: ${score.incorrect}\n\n`;
 
         if (week != null) {
-            let value = `**Week ${week} Picks**\n`;
-            for (let message of matchupMessages) {
-                value += message;
+            reply += `**Week ${week} Picks**\n`;
+            reply += `**Total Score**: ${score[`lastWeekCorrect`] - score[`lastWeekIncorrect`]}\n`;
+            reply += `**Correct**: ${score[`lastWeekCorrect`]}\n`;
+            reply += `**Incorrect**: ${score[`lastWeekIncorrect`]}\n\n`;
+
+            if (emoji != null) {
+                let value = '';
+                for (let message of matchupMessages) {
+                    value += message;
+                }
+                reply += value;
             }
-            // embed.fields.push({
-            //     name: `Last Week Picks`,
-            //     value: value
-            // })
-            reply += value;
+
         }
 
         interaction.reply(reply);
