@@ -21,10 +21,9 @@ module.exports = {
                 .setRequired(false)),
     async execute(interaction) {
         let user = interaction.options.getUser('player');
-
-        let scores = await getScores(interaction.guild);
-        let score = scores.get(user.id);
         let week = interaction.options.getString('week')?.trim();
+        let scores = await getScores(interaction.guild, week);
+        let score = scores.get(user.id);
         let emoji = interaction.options.getString('emoji')?.trim();
         // if (week != null && emoji == null) {
         //     return interaction.reply({ content: 'You must specify an emoji if you specify a week.', ephemeral: true });
