@@ -300,29 +300,35 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
     });
     let leaderboardString = '';
     let colLength = [];
-    let header = ['Rank', 'User', 'Correct', 'Incorrect', 'Score'];
+    let header = ['Rank', 'Correct', 'Incorr', 'Score', 'User'];
+    // header = ['', '', '', '', ''] 
     let leaderboardPositions = Math.min(50, leaderboard.length)
 
     for (let i = 0; i < header.length; i++) {
         colLength.push(header[i].length);
     }
-
+    let embedWidth = 53;
+    let userNameMax = 99;
     for (let i = 0; i < leaderboardPositions; i++) {
         let scoreObject = leaderboard[i];
         colLength[0] = max(colLength[0], `${i + 1}`.length);
-        colLength[1] = max(colLength[1], scoreObject.user.length);
-        colLength[2] = max(colLength[2], `${scoreObject.correct}`.length);
-        colLength[3] = max(colLength[3], `${scoreObject.incorrect}`.length);
-        colLength[4] = max(colLength[4], `${scoreObject.score}`.length);
+        colLength[1] = max(colLength[1], `${scoreObject.correct}`.length);
+        colLength[2] = max(colLength[2], `${scoreObject.incorrect}`.length);
+        colLength[3] = max(colLength[3], `${scoreObject.score}`.length);
+        colLength[4] = max(colLength[4], min(scoreObject.user.length, userNameMax));
     }
     leaderboardString = '```'
-
-    leaderboardString += `${header[0]}`.padEnd(colLength[0] + 2, ' ');
-    leaderboardString += `${header[1]}`.padEnd(colLength[1] + 2, ' ');
-    leaderboardString += `${header[2]}`.padEnd(colLength[2] + 2, ' ');
-    leaderboardString += `${header[3]}`.padEnd(colLength[3] + 2, ' ');
-    leaderboardString += `${header[4]}`.padEnd(colLength[4] + 2, ' ');
+    let pad = ' '
+    leaderboardString += `${header[0]}`.padEnd(colLength[0] + 2, pad);
+    leaderboardString += `${header[1]}`.padEnd(colLength[1] + 2, pad);
+    leaderboardString += `${header[2]}`.padEnd(colLength[2] + 2, pad);
+    leaderboardString += `${header[3]}`.padEnd(colLength[3] + 2, pad);
+    leaderboardString += `${header[4]}`.padEnd(colLength[4] + 2, pad);
     leaderboardString += '\n';
+
+    // leaderboardString += '123456789012345678901234567890123456789012345678901234567890\n'
+    // leaderboardString += '-----------------------------------------------------\n'
+    // leaderboardString += '12345678901234567890123456789012345678901234567890123\n'
 
     let prevScore = 0;
     let prevRank = 0;
@@ -333,11 +339,15 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
             rank = prevRank;
         }
         prevRank = rank;
-        leaderboardString += `${rank}`.padEnd(colLength[0] + 2, ' ');
-        leaderboardString += `${scoreObject.user}`.padEnd(colLength[1] + 2, ' ');
-        leaderboardString += `${scoreObject.correct}`.padEnd(colLength[2] + 2, ' ');
-        leaderboardString += `${scoreObject.incorrect}`.padEnd(colLength[3] + 2, ' ');
-        leaderboardString += `${scoreObject.score}`.padEnd(colLength[4] + 2, ' ');
+        let user = scoreObject.user;
+        if (user.length > userNameMax) {
+            user = user.slice(0,userNameMax - 3) + '...';
+        }
+        leaderboardString += `${rank}`.padEnd(colLength[0] + 2, pad);
+        leaderboardString += `${scoreObject.correct}`.padEnd(colLength[1] + 2, pad);
+        leaderboardString += `${scoreObject.incorrect}`.padEnd(colLength[2] + 2, pad);
+        leaderboardString += `${scoreObject.score}`.padEnd(colLength[3] + 2, pad);
+        leaderboardString += `${user}`
         leaderboardString += '\n';
         prevScore = scoreObject.scoreVal;
     }
@@ -364,6 +374,10 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
 
 function max(a, b) {
     return Math.max(a, b);
+}
+
+function min(a, b) {
+    return Math.min(a, b);
 }
 
 exports.validWeek = async function validWeek(week, guild) {
