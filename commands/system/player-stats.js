@@ -67,19 +67,30 @@ module.exports = {
                 for (let playerReaction of reaction.matchupMessages) {
                     let message = `${playerReaction.message}\n`;
                     let vote = 0;
+                    let voted1 = false;
+                    let voted2 = false;
                     if (playerReaction.player1Votes.includes(user.id)) {
+                        voted1 = true;
                         vote = 1;
-                    } else if (playerReaction.player2Votes.includes(user.id)) {
+                    }
+                    if (playerReaction.player2Votes.includes(user.id)) {
+                        voted2 = true;
                         vote = 2;
                     }
-                    let winner = matchupsMap.get(playerReaction.id).winner;
                     let voted = '';
-                    if (vote != 0) {
-                        voted = playerReaction[`player${vote}`];
+                    if (voted1 && voted2) {
+                        voted = 'Both'
+                    } else {
+                        let winner = matchupsMap.get(playerReaction.id).winner;
+   
+                        if (vote != 0) {
+                            voted = playerReaction[`player${vote}`];
+                        }
+                        if (winner != 0 && vote != 0) {
+                            voted += winner == vote ? ' ✅' : ' ❌';
+                        }
                     }
-                    if (winner != 0 && vote != 0) {
-                        voted += winner == vote ? ' ✅' : ' ❌';
-                    }
+
                     message += `Voted: ${voted}\n`;
 
                     matchupMessages.push(message);
