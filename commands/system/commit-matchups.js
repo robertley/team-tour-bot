@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ChannelType, ButtonBuilder,ActionRowBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, ChannelType, ButtonBuilder,ActionRowBuilder, PermissionFlagsBits, ButtonStyle } = require('discord.js');
 const { createMatchupObjects, setMatchupWinner } = require('../../modules/functions.module');
 const { getObjectFromFile, writeObjectToFile, getReactionMap, getLastMatchupMessage, setReactionMap, setLastMatchupMessage, getMatchupsChannelId, getConsoleChannelId, getPickemsMatchupCategoryId } = require('./../../modules/database.module.js');
 
@@ -16,6 +16,8 @@ module.exports = {
             let reactionMap = await getReactionMap(interaction.guild);
             let matchupData = await getLastMatchupMessage(interaction.guild);
 
+            console.log('matchupData', matchupData)
+
             // check if matchups channel is empty object
             if (Object.keys(matchupData).length === 0) {
                 return matchupConfigChannel.send('No matchups to commit.');
@@ -24,7 +26,7 @@ module.exports = {
             // if last message in the matchups channel is a matchup, add a divider
             let lastMessage = await matchupsChannel.messages.fetch({ limit: 1 });
             // check if lastMessage has a reaction
-            if (lastMessage.first().reactions.cache.size > 0) {
+            if (Array.from(lastMessage.first().components).length > 0) {
                 await matchupsChannel.send('----------------------------------');
             }
 
@@ -64,15 +66,18 @@ module.exports = {
             for (let i in matchupData.lastMatchupMessages) {
 
                 let message = matchupData.lastMatchupMessages[i];
-                let messageSent = await matchupsChannel.send(message);
-                await messageSent.react(matchupData.lastTeam1Emoji);
-                await messageSent.react(matchupData.lastTeam2Emoji);
 
-                let messageContentArray = messageSent.content.split("**");
+                let messageContentArray = message.split("**");
                 let player1 = messageContentArray[1];
                 let player2 = messageContentArray[3];
 
                 if (i == 0) {
+                    let messageSent = await matchupsChannel.send({
+                        content: message,
+                        components: [
+                            createButtonRow(matchupData.lastTeam1Emoji, matchupData.lastTeam2Emoji, id, matchupData.week)
+                        ]
+                    });
                     reactionMapItem.teamMessage = messageSent.content;
                     reactionMapItem.teamMessageId = messageSent.id;
                     reactionMapItem.team1 = player1;
@@ -81,6 +86,12 @@ module.exports = {
                     reactionMapItem.team2Emoji = matchupData.lastTeam2Emoji ?? matchupData.lastTeam2Emoji;
                 } else {
                     let id = Date.now();
+                    let messageSent = await matchupsChannel.send({
+                        content: message,
+                        components: [
+                            createButtonRow(matchupData.lastTeam1Emoji, matchupData.lastTeam2Emoji, id, matchupData.week)
+                        ]
+                    });
                     reactionMapItem.matchupMessages.push({
                         id: id,
                         messageId: messageSent.id,
@@ -113,6 +124,23 @@ module.exports = {
 	}
 };
 
+function createButtonRow(emoji1, emoji2, id, week) {
+    let button1 = new ButtonBuilder({
+        emoji: emoji1,
+        customId: `vote-${id}-1-${week}`,
+        label: '0',
+        style: ButtonStyle.Secondary
+    });
+    let button2 = new ButtonBuilder({
+        emoji: emoji2,
+        customId: `vote-${id}-2-${week}`,
+        label: '0',
+        style: ButtonStyle.Secondary
+    });
+
+    return new ActionRowBuilder().addComponents(button1, button2);
+}
+
 async function createPickemMatchupChannels(client, guild, reactionMapItem, week) {
     let guildId = guild.id;
     let pickemId = await getPickemsMatchupCategoryId(guild);
@@ -137,15 +165,15 @@ async function createPickemMatchupChannels(client, guild, reactionMapItem, week)
     const team1 = new ButtonBuilder()
         .setStyle('Primary')
         .setLabel(reactionMapItem.team1)
-        .setCustomId(reactionMapItem.id + '-1');
+        .setCustomId('winner-' + reactionMapItem.id + '-1');
     const team2 = new ButtonBuilder()
         .setStyle('Primary')
         .setLabel(reactionMapItem.team2)
-        .setCustomId(reactionMapItem.id + '-2');
+        .setCustomId('winner-' + reactionMapItem.id + '-2');
     const noWinner = new ButtonBuilder()
         .setStyle('Primary')
         .setLabel('No Winner')
-        .setCustomId(reactionMapItem.id + '-0');
+        .setCustomId('winner-' + reactionMapItem.id + '-0');
 
     const row = new ActionRowBuilder()
         .addComponents(team1, team2, noWinner);
@@ -164,15 +192,15 @@ async function createPickemMatchupChannels(client, guild, reactionMapItem, week)
         const player1 = new ButtonBuilder()
             .setStyle('Primary')
             .setLabel(matchup.player1)
-            .setCustomId(matchup.id + '-1');
+            .setCustomId('winner-' + matchup.id + '-1');
         const player2 = new ButtonBuilder()
             .setStyle('Primary')
             .setLabel(matchup.player2)
-            .setCustomId(matchup.id + '-2');
+            .setCustomId('winner-' + matchup.id + '-2');
         const noWinner = new ButtonBuilder()
             .setStyle('Primary')
             .setLabel('No Winner')
-            .setCustomId(matchup.id + '-0');
+            .setCustomId('winner-' + matchup.id + '-0');
         
         const row = new ActionRowBuilder()
             .addComponents(player1, player2, noWinner);

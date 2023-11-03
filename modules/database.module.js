@@ -207,6 +207,11 @@ exports.getWeeks = async function getWeeks(guild) {
     return weeks;
 }
 
+// exports.getForcedVotes = async function getForcedVotes(guild) {
+//     let forcedVotes = await module.exports.getObjectFromFile(`./data/${guild.id}/forcedVotes.json`);
+//     return forcedVotes;
+// }
+
 exports.setLastMatchupMessage = async function setLastMatchupMessage(guild, lastMatchupMessages) {
     await module.exports.writeObjectToFile(`./data/${guild.id}/lastMatchupMessages.json`, lastMatchupMessages);
 }
@@ -226,6 +231,10 @@ exports.setSettings = async function setSettings(guild, settings) {
 exports.setWeeks = async function setWeeks(guild, weeks) {
     await module.exports.writeObjectToFile(`./data/${guild.id}/weeks.json`, weeks);
 }
+
+// exports.setForcedVotes = async function setForcedVotes(guild, forcedVotes) {
+//     await module.exports.writeObjectToFile(`./data/${guild.id}/forcedVotes.json`, forcedVotes);
+// }
 
 // config IDs
 exports.getMatchupsChannelId = async function getMatchupsChannelId(guild) {

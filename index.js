@@ -9,11 +9,13 @@ const {
     TextInputBuilder,
     TextInputStyle,
     ActionRowBuilder,
-    Partials
+    Partials,
+    ButtonBuilder,
+    ButtonStyle
 } = require('discord.js');
 const { token } = require('./config.json');
 const { setMatchupWinner, getScores, prettyJson, writeScoresToLeaderboard, validWeek } = require('./modules/functions.module.js');
-const { initNewServer, writeObjectToFile, replacer, setLastMatchupMessage, getMatchupsChannelId, getConsoleChannelId } = require('./modules/database.module.js');
+const { initNewServer, writeObjectToFile, replacer, setLastMatchupMessage, getMatchupsChannelId, getConsoleChannelId, getReactionMap, getMatchups, setReactionMap } = require('./modules/database.module.js');
 
 
 //#region Boiler Plate
@@ -173,15 +175,48 @@ client.on(Events.MessageCreate, async message => {
         let text = buildMatchupMessage(team1.name, team2.name, team1Emoji, team2Emoji);
         lastMatchupMessages.push(text);
 
-        let matchupMessage = await client.channels.cache.get(consoleChannelId).send(text);
-        await matchupMessage.react(team1Emoji);
-        await matchupMessage.react(team2Emoji);
+        let button1 = new ButtonBuilder({
+            emoji: team1Emoji,
+            customId: `test-1`,
+            style: ButtonStyle.Secondary,
+            label: '0'
+        });
+        let button2 = new ButtonBuilder({
+            emoji: team2Emoji,
+            customId: `test-2`,
+            style: ButtonStyle.Secondary,
+            label: '0'
+        });
+
+        let matchupMessage = await client.channels.cache.get(consoleChannelId).send({
+            content: text,
+            components: [
+                new ActionRowBuilder().addComponents(button1, button2)
+            ]
+        });
+        
 
         for (let i = 0; i < playerCount; i++) {
             let text = buildMatchupMessage(team1[`player${i+1}`], team2[`player${i+1}`], team1Emoji, team2Emoji);
-            let matchupMessage = await client.channels.cache.get(consoleChannelId).send(text);
-            await matchupMessage.react(team1Emoji);
-            await matchupMessage.react(team2Emoji);
+            let button1 = new ButtonBuilder({
+                emoji: team1Emoji,
+                customId: `test-1`,
+                style: ButtonStyle.Secondary,
+                label: '0'
+            });
+            let button2 = new ButtonBuilder({
+                emoji: team2Emoji,
+                customId: `test-2`,
+                style: ButtonStyle.Secondary,
+                label: '0'
+            });
+    
+            let matchupMessage = await client.channels.cache.get(consoleChannelId).send({
+                content: text,
+                components: [
+                    new ActionRowBuilder().addComponents(button1, button2)
+                ]
+            });
             lastMatchupMessages.push(text);
         }
         
@@ -234,35 +269,113 @@ async function buttonHandler(interaction) {
     console.log('button clicked')
     let customId = interaction.customId;
     let customIdArray = customId.split('-');
-    let team = customIdArray[1];
-    let matchupId = customIdArray[0];
-
-    await setMatchupWinner(+matchupId, team, interaction.guild);
-
-    let emoji = '';
-    if (team == '0') {
-        emoji = '\u{2B1C}'; // Unicode escape sequence for yellow square emoji
-    } 
-    if (team == '1') {
-        emoji = '\u{1F7E5}'; // Unicode escape sequence for red square emoji
+    let type = customIdArray[0];
+    let team = customIdArray[2];
+    let matchupId = customIdArray[1];
+    let week = customIdArray[3];
+    let userId = interaction.user.id;
+    if (type == 'test') {
+        return;
     }
-    if (team == '2') {
-        emoji = '\u{1F7E9}'; // Unicode escape sequence for green square emoji
-    }
-    // update content of message
-    let message = interaction.message.content;
-    // remove last character from message
-    message = message.substring(0, message.length - 1);
-    // add emoji to message
-    message += emoji;
-    interaction.update({
-        content: message
-    })
+    console.log(customId)
+    console.log(type, team, matchupId, week, userId);
 
-    let scoresMap = await getScores(interaction.guild);
-    writeScoresToLeaderboard(client, scoresMap, interaction.guild);
-    let scoresString = JSON.stringify(scoresMap, replacer, 2);
-    console.log(scoresString);
+    if (type == 'vote') {
+        let reactionMap = await getReactionMap(interaction.guild);
+        let reactions = reactionMap.get(week);
+        let team1Votes;
+        let team2Votes;
+        for (let reactionMapItem of reactions) {
+            if  (reactionMapItem.id == matchupId) {
+                team1Votes = reactionMapItem.team1Votes;
+                team2Votes = reactionMapItem.team2Votes;
+                break;
+            }
+            for (let matchupMessage of reactionMapItem.matchupMessages) {
+                if (matchupMessage.id == matchupId) {
+                    team1Votes = matchupMessage.player1Votes;
+                    team2Votes = matchupMessage.player2Votes;
+                    break;
+                }
+            }
+        }
+
+        if (team1Votes == null || team2Votes == null) {
+            interaction.reply({ content: 'Something went wrong.', ephemeral: true });
+        }
+
+        let teamVote = team == 1 ? team1Votes : team2Votes;
+        let teamNonVote = team == 1 ? team2Votes : team1Votes;
+    
+        if (teamVote.includes(userId)) {
+            interaction.reply({ content: 'You already voted for this team.', ephemeral: true });
+            return;
+        } else {
+            teamVote.push(userId);
+            // interaction.reply({ content: 'Vote added.', ephemeral: true });
+        }
+
+        if (teamNonVote.includes(userId)) {
+            teamNonVote.splice(teamNonVote.indexOf(userId), 1);
+        }
+
+        let buttons = interaction.message.components[0].components;
+        let button1 = buttons[0];
+        let button2 = buttons[1];
+        let newButton1 = new ButtonBuilder({
+            customId: button1.data.custom_id,
+            style: ButtonStyle.Secondary,
+            label: team1Votes.length,
+            emoji: button1.data.emoji
+        });
+        let newButton2 = new ButtonBuilder({
+            customId: button2.data.custom_id,
+            style: ButtonStyle.Secondary,
+            label: team2Votes.length,
+            emoji: button2.data.emoji
+        });
+        interaction.update({
+            components: [
+                new ActionRowBuilder().addComponents(newButton1, newButton2)
+            ]
+        })
+    
+        console.log(team1Votes, team2Votes);
+
+        await setReactionMap(interaction.guild, reactionMap);
+
+    }
+
+    
+
+    if (type == 'winner') {
+        await setMatchupWinner(+matchupId, team, interaction.guild);
+
+        let emoji = '';
+        if (team == '0') {
+            emoji = '\u{2B1C}'; // Unicode escape sequence for yellow square emoji
+        } 
+        if (team == '1') {
+            emoji = '\u{1F7E5}'; // Unicode escape sequence for red square emoji
+        }
+        if (team == '2') {
+            emoji = '\u{1F7E9}'; // Unicode escape sequence for green square emoji
+        }
+        // update content of message
+        let message = interaction.message.content;
+        // remove last character from message
+        message = message.substring(0, message.length - 1);
+        // add emoji to message
+        message += emoji;
+        interaction.update({
+            content: message
+        })
+
+        let scoresMap = await getScores(interaction.guild);
+        writeScoresToLeaderboard(client, scoresMap, interaction.guild);
+        let scoresString = JSON.stringify(scoresMap, replacer, 2);
+        console.log(scoresString);
+    }
 }
 
 // Log in to Discord with your client's token
