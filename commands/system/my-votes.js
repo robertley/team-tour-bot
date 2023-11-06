@@ -26,7 +26,8 @@ module.exports = {
         } else {
             matchupMessages = voteResp;
         }
-        let resp = `Week ${week} Votes\n`;
+        let resp = '--\n';
+        resp += `Week ${week} Votes\n`;
         for (let item of matchupMessages) {
             resp += item;
         }
