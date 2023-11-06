@@ -14,6 +14,7 @@ module.exports = {
                 .setDescription('The week you want to see your votes for.')
                 .setRequired(true)),
 	async execute(interaction) {
+        interaction.reply({ content: 'Sending your votes to your DMs...', ephemeral: true })
         // dm user who used command
         let user = interaction.user;
         let week = interaction.options.getString('week');
