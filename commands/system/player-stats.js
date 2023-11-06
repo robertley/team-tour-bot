@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { getReactionMap, getMatchups } = require('./../../modules/database.module.js');
 const { getScores } = require('../../modules/functions.module.js');
 const { EmbedBuilder } = require('discord.js');
+const { getPlayerVotes } = require('../../modules/output.module.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -34,67 +35,11 @@ module.exports = {
 
         let matchupMessages = [];
         if (week != null && emoji != null) {
-            let matchupsMap = await getMatchups(interaction.guild);
-            let reactionMap = await getReactionMap(interaction.guild);
-            let reactions = reactionMap.get(week + '');
-            if (reactions == null) {
-                return interaction.reply({ content: 'Invalid week.', ephemeral: true });
-            }
-            reactions = reactions.filter(reaction => reaction.team1Emoji == emoji || reaction.team2Emoji == emoji);
-            if (reactions.length == 0) {
-                return interaction.reply({ content: 'Invalid emoji.', ephemeral: true });
-            }
-            for (let reaction of reactions) {
-                let message = `${reaction.teamMessage}\n`;
-                let vote = 0;
-                if (reaction.team1Votes.includes(user.id)) {
-                    vote = 1;
-                } else if (reaction.team2Votes.includes(user.id)) {
-                    vote = 2;
-                }
-                let winner = matchupsMap.get(reaction.id).winner;
-                let voted = '';
-                if (vote != 0) {
-                    voted = reaction[`team${vote}`];
-                }
-                if (winner != 0) {
-                    voted += winner == vote ? ' ✅' : ' ❌';
-                }
-                message += `Voted: ${voted}\n`;
-
-                matchupMessages.push(message);
-
-                for (let playerReaction of reaction.matchupMessages) {
-                    let message = `${playerReaction.message}\n`;
-                    let vote = 0;
-                    let voted1 = false;
-                    let voted2 = false;
-                    if (playerReaction.player1Votes.includes(user.id)) {
-                        voted1 = true;
-                        vote = 1;
-                    }
-                    if (playerReaction.player2Votes.includes(user.id)) {
-                        voted2 = true;
-                        vote = 2;
-                    }
-                    let voted = '';
-                    if (voted1 && voted2) {
-                        voted = 'Both'
-                    } else {
-                        let winner = matchupsMap.get(playerReaction.id).winner;
-   
-                        if (vote != 0) {
-                            voted = playerReaction[`player${vote}`];
-                        }
-                        if (winner != 0 && vote != 0) {
-                            voted += winner == vote ? ' ✅' : ' ❌';
-                        }
-                    }
-
-                    message += `Voted: ${voted}\n`;
-
-                    matchupMessages.push(message);
-                }
+            let voteResp = await getPlayerVotes(interaction.guild, user, week, emoji);
+            if (typeof voteResp == 'string') {
+                return interaction.reply({ content: voteResp, ephemeral: true });
+            } else {
+                matchupMessages = voteResp;
             }
         }
 
