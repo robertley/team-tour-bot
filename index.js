@@ -348,7 +348,47 @@ async function buttonHandler(interaction) {
 
     
 
-    if (type == 'winner') {
+    else if (type == 'winner') {
+        await setMatchupWinner(+matchupId, team, interaction.guild);
+
+        let emoji = '';
+        if (team == '0') {
+            emoji = '\u{2B1C}'; // Unicode escape sequence for yellow square emoji
+        } 
+        if (team == '1') {
+            emoji = '\u{1F7E5}'; // Unicode escape sequence for red square emoji
+        }
+        if (team == '2') {
+            emoji = '\u{1F7E9}'; // Unicode escape sequence for green square emoji
+        }
+        // update content of message
+        let message = interaction.message.content;
+        // remove last character from message
+        message = message.substring(0, message.length - 1);
+        // add emoji to message
+        message += emoji;
+        interaction.update({
+            content: message
+        })
+
+        let scoresMap = await getScores(interaction.guild);
+        writeScoresToLeaderboard(client, scoresMap, interaction.guild);
+        let scoresString = JSON.stringify(scoresMap, replacer, 2);
+        console.log(scoresString);
+    }
+
+    // band aid until week 4
+    else {
+        matchupId = customIdArray[0];
+        team = customIdArray[1];
+        if (matchupId == null || team == null) {
+            return;
+        }
+        let matchups = await getMatchups(interaction.guild);
+        if (!matchups.has(+matchupId)) {
+            return;
+        }
+
         await setMatchupWinner(+matchupId, team, interaction.guild);
 
         let emoji = '';
