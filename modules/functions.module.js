@@ -272,6 +272,26 @@ function addUserScore(score, user, scoresMap, lastWeek) {
 }
 
 exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(client, scoresMap, guild) {
+
+    let leaderboardString = await module.exports.getLeaderboardString(client, scoresMap, 1, 50);
+
+    let embed = {
+        title: `Pick'ems Leaderboard`,
+        description: leaderboardString
+    }
+
+    let channel = client.channels.cache.get(await getLeaderboardChannelId(guild));
+    await channel.messages.fetch({ limit: 1 }).then(async messages => {
+        if (messages.size == 0) {
+            await channel.send({ embeds: [embed]});
+            return;
+        }
+        let messageArray = Array.from(messages.values());
+        await messageArray[0].edit({ embeds: [embed]});
+    });
+}
+
+exports.getLeaderboardString = async function getLeaderboardString(client, scoresMap, start, end) {
     let leaderboard = [];
 
     for (let [key, value] of scoresMap) {
@@ -302,14 +322,14 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
     let colLength = [];
     let header = ['Rank', 'Correct', 'Incorr', 'Score', 'User'];
     // header = ['', '', '', '', ''] 
-    let leaderboardPositions = Math.min(50, leaderboard.length)
+    let leaderboardPositions = Math.min(end - start + 1, leaderboard.length)
 
     for (let i = 0; i < header.length; i++) {
         colLength.push(header[i].length);
     }
     let embedWidth = 53;
     let userNameMax = 99;
-    for (let i = 0; i < leaderboardPositions; i++) {
+    for (let i = start - 1; i < leaderboardPositions; i++) {
         let scoreObject = leaderboard[i];
         colLength[0] = max(colLength[0], `${i + 1}`.length);
         colLength[1] = max(colLength[1], `${scoreObject.correct}`.length);
@@ -356,20 +376,7 @@ exports.writeScoresToLeaderboard = async function writeScoresToLeaderboard(clien
 
     leaderboardString += `${leaderboard.length} players total`
 
-    let embed = {
-        title: `Pick'ems Leaderboard`,
-        description: leaderboardString
-    }
-
-    let channel = client.channels.cache.get(await getLeaderboardChannelId(guild));
-    await channel.messages.fetch({ limit: 1 }).then(async messages => {
-        if (messages.size == 0) {
-            await channel.send({ embeds: [embed]});
-            return;
-        }
-        let messageArray = Array.from(messages.values());
-        await messageArray[0].edit({ embeds: [embed]});
-    });
+    return leaderboardString;
 }
 
 function max(a, b) {
