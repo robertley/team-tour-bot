@@ -1,9 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { matchUpsId } = require('./../../config.json');
-const { getObjectFromFile, writeObjectToFile, getWeeks, getReactionMap, setReactionMap, getMatchupsChannelId, getSettings, setSettings } = require('./../../modules/database.module.js');
-const { updateSetting, getLeaderboardString } = require('../../modules/functions.module');
-const { getPlayerVotes, createMessageArray } = require('../../modules/output.module');
-
+const { getLeaderboardString, getScores } = require('../../modules/functions.module');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -23,8 +19,9 @@ module.exports = {
         if (start >= end) {
             return interaction.reply({ content: 'Start position must be less than end position.', ephemeral: true });
         }
+        let scoresMap = await getScores(interaction.guild);
 
-        let leaderboardString = await getLeaderboardString(interaction.guild, start, end);
+        let leaderboardString = await getLeaderboardString(interaction.client, scoresMap, start, end);
 
         let embed = {
             title: `Leaderboard from ${start} to ${end}`,
