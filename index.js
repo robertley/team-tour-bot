@@ -120,22 +120,27 @@ client.on(Events.InteractionCreate, async interaction => {
 
 function buildMatchupMessage(team1, team2, team1Emoji, team2Emoji, format = "standard", i = null) {
     let text = "";
+    let turtle = "<:SAPTurtle:920925578343903262>";
+    let puppy = "<:SAPPuppy:921461883784015873>";
+    let starfish = "<:SAPStarfish:1093007123845230624>";
+    let golden = "<:SAPGoldenRetriever:1093023141032366101>";
+    let tiger = "<:SAPTiger:1190114988413702194>";
     if (format != "standard") {
         switch (i) {
             case 0:
-                text += ":SAPTurtle: ";
+                text += `${turtle} Turtle Pack ${turtle}\n`;
                 break;
             case 1:
-                text += ":SAPPuppy: ";
+                text += `${puppy} Puppy Pack ${puppy}\n`;
                 break;
             case 2:
-                text += ":SAPStarfish: ";
+                text += `${starfish} Star Pack ${starfish}\n`;
                 break;
             case 3:
-                text += ":SAPGoldenRetriever: ";
+                text += `${golden} Golden Pack ${golden}\n`;
                 break;
             case 4:
-                text += ":SAPTiger: ";
+                text += `${tiger} Weekly Pack ${tiger}\n`;
                 break;
         }
     }
