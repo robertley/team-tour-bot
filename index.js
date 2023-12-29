@@ -118,8 +118,28 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 });
 
-function buildMatchupMessage(team1, team2, team1Emoji, team2Emoji) {
-    let text = `${team1Emoji} **${team1}** vs **${team2}** ${team2Emoji}\n`;
+function buildMatchupMessage(team1, team2, team1Emoji, team2Emoji, format = "standard", i = null) {
+    let text = "";
+    if (format != "standard") {
+        switch (i) {
+            case 0:
+                text += ":SAPTurtle: ";
+                break;
+            case 1:
+                text += ":SAPPuppy: ";
+                break;
+            case 2:
+                text += ":SAPStarfish: ";
+                break;
+            case 3:
+                text += ":SAPGoldenRetriever: ";
+                break;
+            case 4:
+                text += ":SAPTiger: ";
+                break;
+        }
+    }
+    text += `${team1Emoji} **${team1}** vs **${team2}** ${team2Emoji}\n`;
     return text;
 }
 
@@ -144,6 +164,12 @@ client.on(Events.MessageCreate, async message => {
         let week = matchUpConfig.week;
         if (!(await validWeek(week, message.guild))) {
             message.reply('The week number is invalid.');
+            return;
+        }
+        let format = matchUpConfig.format;
+        let formats = ["standard", "mirror"];
+        if (!formats.includes(format)) {
+            message.reply('The format is invalid.');
             return;
         }
         let team1Emoji = matchUpConfig.team1.emoji.trim();
@@ -197,7 +223,7 @@ client.on(Events.MessageCreate, async message => {
         
 
         for (let i = 0; i < playerCount; i++) {
-            let text = buildMatchupMessage(team1[`player${i+1}`], team2[`player${i+1}`], team1Emoji, team2Emoji);
+            let text = buildMatchupMessage(team1[`player${i+1}`], team2[`player${i+1}`], team1Emoji, team2Emoji, format, i);
             let button1 = new ButtonBuilder({
                 emoji: team1Emoji,
                 customId: `test-1`,
