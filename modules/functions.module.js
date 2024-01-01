@@ -329,7 +329,7 @@ exports.getLeaderboardString = async function getLeaderboardString(client, score
     }
     let embedWidth = 53;
     let userNameMax = 99;
-    for (let i = start - 1; i < end; i++) {
+    for (let i = start - 1; i < leaderboardPositions; i++) {
         let scoreObject = leaderboard[i];
         colLength[0] = max(colLength[0], `${i + 1}`.length);
         colLength[1] = max(colLength[1], `${scoreObject.correct}`.length);
@@ -352,7 +352,7 @@ exports.getLeaderboardString = async function getLeaderboardString(client, score
 
     let prevScore = 0;
     let prevRank = 0;
-    for (let i = start - 1; i < end; i++) {
+    for (let i = start - 1; i < leaderboardPositions; i++) {
         let scoreObject = leaderboard[i];
         let rank = i + 1;
         if (scoreObject.scoreVal == prevScore) {
