@@ -146,8 +146,13 @@ async function createPickemMatchupChannels(client, guild, reactionMapItem, week)
     let pickemId = await getPickemsMatchupCategoryId(guild);
     let parent = await client.guilds.cache.get(guildId).channels.cache.get(pickemId);
     let role = await guild.roles.cache.find(role => role.name === "Pick'em Admin");
+    let channelName = `${week} ${reactionMapItem.team1} vs ${reactionMapItem.team2}`;
+    // trim channel name to 100 characters
+    if (channelName.length > 100) {
+        channelName = channelName.substring(0, 100);
+    }
     let channel = await client.guilds.cache.get(guildId).channels.create({
-        name: `${week} ${reactionMapItem.team1} vs ${reactionMapItem.team2}`,
+        name: channelName,
         type: ChannelType.GUILD_TEXT,
         parent: parent,
         permissionOverwrites: [
@@ -162,13 +167,23 @@ async function createPickemMatchupChannels(client, guild, reactionMapItem, week)
         ],
     });
 
+    let buttonLabel1 = reactionMapItem.team1;
+    let buttonLabel2 = reactionMapItem.team2;
+    // trim to 80 chars
+    if (buttonLabel1.length > 80) {
+        buttonLabel1 = buttonLabel1.substring(0, 80);
+    }
+    if (buttonLabel2.length > 80) {
+        buttonLabel2 = buttonLabel2.substring(0, 80);
+    }
+
     const team1 = new ButtonBuilder()
         .setStyle('Primary')
-        .setLabel(reactionMapItem.team1)
+        .setLabel(buttonLabel1)
         .setCustomId('winner-' + reactionMapItem.id + '-1');
     const team2 = new ButtonBuilder()
         .setStyle('Primary')
-        .setLabel(reactionMapItem.team2)
+        .setLabel(buttonLabel2)
         .setCustomId('winner-' + reactionMapItem.id + '-2');
     const noWinner = new ButtonBuilder()
         .setStyle('Primary')
@@ -189,13 +204,22 @@ async function createPickemMatchupChannels(client, guild, reactionMapItem, week)
     });
 
     for (let matchup of reactionMapItem.matchupMessages) {
+        let buttonLabel1 = matchup.player1;
+        let buttonLabel2 = matchup.player2;
+        // trim to 80 chars
+        if (buttonLabel1.length > 80) {
+            buttonLabel1 = buttonLabel1.substring(0, 80);
+        }
+        if (buttonLabel2.length > 80) {
+            buttonLabel2 = buttonLabel2.substring(0, 80);
+        }
         const player1 = new ButtonBuilder()
             .setStyle('Primary')
-            .setLabel(matchup.player1)
+            .setLabel(buttonLabel1)
             .setCustomId('winner-' + matchup.id + '-1');
         const player2 = new ButtonBuilder()
             .setStyle('Primary')
-            .setLabel(matchup.player2)
+            .setLabel(buttonLabel2)
             .setCustomId('winner-' + matchup.id + '-2');
         const noWinner = new ButtonBuilder()
             .setStyle('Primary')
