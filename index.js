@@ -124,7 +124,7 @@ function buildMatchupMessage(team1, team2, team1Emoji, team2Emoji, format = "sta
     let puppy = "<:SAPPuppy:921461883784015873>";
     let starfish = "<:SAPStarfish:1093007123845230624>";
     let golden = "<:SAPGoldenRetriever:1093023141032366101>";
-    let tiger = "<:SAPTiger:1190114988413702194>";
+    let unicorn = "<:SAPUnicorn:1190375464783577149> ";
     if (format != "standard") {
         switch (i) {
             case 0:
@@ -140,7 +140,7 @@ function buildMatchupMessage(team1, team2, team1Emoji, team2Emoji, format = "sta
                 text += `${golden} Golden Pack ${golden}\n`;
                 break;
             case 4:
-                text += `${tiger} Weekly Pack ${tiger}\n`;
+                text += `${unicorn} Unicorn Pack ${unicorn}\n`;
                 break;
         }
     }
