@@ -396,7 +396,7 @@ exports.createPickemMatchupChannel = async function createPickemMatchupChannel(c
     // filter bad words
     for (let word of badWords) {
         if (channelName.toLowerCase().includes(word)) {
-            channelName = channelName.replace(word, '_'.repeat(word.length));
+            channelName = channelName.toLowerCase().replace(word, '_'.repeat(word.length));
         }
     }
         

@@ -29,6 +29,7 @@ module.exports = {
             return interaction.reply('Matchup not found.');
         }
 
-        createPickemMatchupChannel(interaction.client, interaction.guild, matchup, week);
+        await createPickemMatchupChannel(interaction.client, interaction.guild, matchup, week);
+        return interaction.reply('Matchup channel created.');
     }
 }
