@@ -1,5 +1,6 @@
 const { ChannelType, PermissionFlagsBits, ButtonBuilder, ActionRowBuilder } = require('discord.js');
 const { getReactionMap, setReactionMap, getSettings, setSettings, getWeeks, setWeeks, getMatchups, setMatchups, getLeaderboardChannelId, getMatchupsChannelId, writeToSettingsServer, getPickemsMatchupCategoryId } = require('./database.module.js');
+const { badWords } = require('../badwords.json');
 
 exports.collectReactions = async function collectReactions(client, guild, week, test) {
     let matchupsChannel = client.channels.cache.get(await getMatchupsChannelId(guild));
@@ -391,6 +392,15 @@ exports.createPickemMatchupChannel = async function createPickemMatchupChannel(c
     if (channelName.length > 100) {
         channelName = channelName.substring(0, 100);
     }
+
+    // filter bad words
+    for (let word of badWords) {
+        if (channelName.toLowerCase().includes(word)) {
+            channelName = channelName.replace(word, '_'.repeat(word.length));
+        }
+    }
+        
+
     let channel = await client.guilds.cache.get(guildId).channels.create({
         name: channelName,
         type: ChannelType.GUILD_TEXT,
