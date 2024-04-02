@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ChannelType, ButtonBuilder,ActionRowBuilder, PermissionFlagsBits, ButtonStyle } = require('discord.js');
-const { createMatchupObjects, setMatchupWinner } = require('../../modules/functions.module');
+const { createMatchupObjects, setMatchupWinner, createPickemMatchupChannel } = require('../../modules/functions.module');
 const { getObjectFromFile, writeObjectToFile, getReactionMap, getLastMatchupMessage, setReactionMap, setLastMatchupMessage, getMatchupsChannelId, getConsoleChannelId, getPickemsMatchupCategoryId } = require('./../../modules/database.module.js');
 
 module.exports = {
@@ -115,7 +115,7 @@ module.exports = {
             await createMatchupObjects(matchupObjects, interaction.guild);
             await setReactionMap(interaction.guild, reactionMap);
             await setLastMatchupMessage(interaction.guild, {});
-            await createPickemMatchupChannels(interaction.client, interaction.guild, reactionMapItem, matchupData.week);
+            await createPickemMatchupChannel(interaction.client, interaction.guild, reactionMapItem, matchupData.week);
             matchupConfigChannel.send('Matchups committed.');
         } catch (error) {
             console.log(error);
@@ -139,103 +139,4 @@ function createButtonRow(emoji1, emoji2, id, week) {
     });
 
     return new ActionRowBuilder().addComponents(button1, button2);
-}
-
-async function createPickemMatchupChannels(client, guild, reactionMapItem, week) {
-    let guildId = guild.id;
-    let pickemId = await getPickemsMatchupCategoryId(guild);
-    let parent = await client.guilds.cache.get(guildId).channels.cache.get(pickemId);
-    let role = await guild.roles.cache.find(role => role.name === "Pick'em Admin");
-    let channelName = `${week} ${reactionMapItem.team1} vs ${reactionMapItem.team2}`;
-    // trim channel name to 100 characters
-    if (channelName.length > 100) {
-        channelName = channelName.substring(0, 100);
-    }
-    let channel = await client.guilds.cache.get(guildId).channels.create({
-        name: channelName,
-        type: ChannelType.GUILD_TEXT,
-        parent: parent,
-        permissionOverwrites: [
-            {
-                id: guildId,
-                deny: [PermissionFlagsBits.ViewChannel],
-            },
-            {
-                id: role.id,
-                allow: [PermissionFlagsBits.ViewChannel]
-            }
-        ],
-    });
-
-    let buttonLabel1 = reactionMapItem.team1;
-    let buttonLabel2 = reactionMapItem.team2;
-    // trim to 80 chars
-    if (buttonLabel1.length > 80) {
-        buttonLabel1 = buttonLabel1.substring(0, 80);
-    }
-    if (buttonLabel2.length > 80) {
-        buttonLabel2 = buttonLabel2.substring(0, 80);
-    }
-
-    const team1 = new ButtonBuilder()
-        .setStyle('Primary')
-        .setLabel(buttonLabel1)
-        .setCustomId('winner-' + reactionMapItem.id + '-1');
-    const team2 = new ButtonBuilder()
-        .setStyle('Primary')
-        .setLabel(buttonLabel2)
-        .setCustomId('winner-' + reactionMapItem.id + '-2');
-    const noWinner = new ButtonBuilder()
-        .setStyle('Primary')
-        .setLabel('No Winner')
-        .setCustomId('winner-' + reactionMapItem.id + '-0');
-
-    const row = new ActionRowBuilder()
-        .addComponents(team1, team2, noWinner);
-
-    // unicode for white large square emoji
-    let emoji = '\u{2B1C}';
-
-    let content = `Matchup ID: ${reactionMapItem.id}\n`
-    content += `**${reactionMapItem.team1}** :red_square: vs **${reactionMapItem.team2}** :green_square: - Winner ` + emoji;
-    await channel.send({
-        content: content,
-        components: [row]
-    });
-
-    for (let matchup of reactionMapItem.matchupMessages) {
-        let buttonLabel1 = matchup.player1;
-        let buttonLabel2 = matchup.player2;
-        // trim to 80 chars
-        if (buttonLabel1.length > 80) {
-            buttonLabel1 = buttonLabel1.substring(0, 80);
-        }
-        if (buttonLabel2.length > 80) {
-            buttonLabel2 = buttonLabel2.substring(0, 80);
-        }
-        const player1 = new ButtonBuilder()
-            .setStyle('Primary')
-            .setLabel(buttonLabel1)
-            .setCustomId('winner-' + matchup.id + '-1');
-        const player2 = new ButtonBuilder()
-            .setStyle('Primary')
-            .setLabel(buttonLabel2)
-            .setCustomId('winner-' + matchup.id + '-2');
-        const noWinner = new ButtonBuilder()
-            .setStyle('Primary')
-            .setLabel('No Winner')
-            .setCustomId('winner-' + matchup.id + '-0');
-        
-        const row = new ActionRowBuilder()
-            .addComponents(player1, player2, noWinner);
-
-        let content = `Matchup ID: ${matchup.id}\n`
-        content += `**${matchup.player1}** :red_square: vs **${matchup.player2}** :green_square: - Winner ` + emoji;
-        await channel.send({
-            content: content,
-            components: [row]
-        });
-    }
-
-
 }
