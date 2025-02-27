@@ -113,7 +113,7 @@ client.on(Events.InteractionCreate, async interaction => {
 client.on(Events.InteractionCreate, async interaction => {
     
     if (interaction.isButton()) {
-        buttonHandler(interaction);
+        await buttonHandler(interaction);
         return;
     }
 });
